@@ -1,174 +1,21 @@
-import fetch from "node-fetch"
+import fetch from "node-fetch";
 import {
     addExif
-} from "../../lib/sticker.js"
+} from "../../lib/sticker.js";
 import {
     Sticker,
     StickerTypes
-} from "wa-sticker-formatter"
+} from "wa-sticker-formatter";
 import {
     sticker
-} from "../../lib/sticker.js"
-import got from "got"
-import cheerio from "cheerio"
-import emojiRegex from "emoji-regex"
+} from "../../lib/sticker.js";
+import got from "got";
+import cheerio from "cheerio";
+import emojiRegex from "emoji-regex";
 
-let handler = async (m, {
-    conn,
-    args,
-    usedPrefix,
-    command
-}) => {
-    let stiker = false
-    try {
-        let [packnames, ...authors] = args.join(" ").split("|")
-        authors = (authors || []).join("|")
-        let q = m.quoted ? m.quoted : m
-        let mime = q.mtype || ""
-        await m.reply(wait)
-        if (/stickerMessage/g.test(mime)) {
-            let img = await q.download?.()
-            stiker = await addExif(img, packnames || packname, authors || m.name)
-        } else if (/imageMessage/g.test(mime)) {
-            let img = await q.download?.()
-            stiker = await createSticker(img, false, packnames || packname, authors || m.name)
-        } else if (/videoMessage/g.test(mime)) {
-            if ((q.msg || q).seconds > 11) return m.reply("Maksimal video durasi 10 detik!")
-            let img = await q.download?.()
-            stiker = await mp4ToWebp(img, {
-                pack: packnames || packname,
-                authors: authors || m.name
-            })
-        } else if (/documentMessage/g.test(mime)) {
-            let img = await q.download?.()
-            stiker = await createSticker(img, false, packnames || packname, authors || m.name, 30)
-        } else if (/viewOnceMessageV2/g.test(mime)) {
-            let img = await q.download?.()
-            stiker = await sticker(img, false, packnames || packname, authors || m.name)
-        } else if (args[0] && isUrl(args[0])) {
-            stiker = await createSticker(false, args[0], packnames || packname, authors || m.name, 30)
-        } else if (/extendedTextMessage/g.test(mime)) {
-            if (!(q.text.match(emojiRegex()) || [])[0]) return m.reply(`No emojis found in the input text!\nOr\nReply an image/video/sticker with command ${usedPrefix + command}`)
-            const firstEmoji = (q.text.match(emojiRegex()) || [])[0];
-            if (firstEmoji) {
-                let cari = await searchEmojiGraph(firstEmoji)
-                let res = await getEmojiGraph(cari[0])
-                let emojiData = res[0].vendors
-                let emj = getUrlByName(emojiData, "Whatsapp")
-                stiker = await createSticker(await (await conn.getFile(emj)).data, false, packnames || packname, authors || m.name, 30)
-            } else {
-                await m.reply("No emojis found in the input text.");
-            }
-        } else return m.reply(`No emojis found in the input text!\nOr\nReply an image/video/sticker with command ${usedPrefix + command}`)
-    } catch (e) {
-        console.log(e)
-        stiker = e
-    } finally {
-        if (stiker) return m.reply(stiker)
-    }
-}
-handler.help = ["stiker (caption|reply media)", "stiker <url>", "stikergif (caption|reply media)", "stikergif <url>"]
-handler.tags = ["sticker"]
-handler.command = /^s(ti(c?k(er(gif)?)?|c)|gif)?$/i
-export default handler
+const isUrl = (text) => text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)(jpe?g|gif|png)/, 'gi'));
 
-async function getEmojiGraph(url) {
-    try {
-        const response = await fetch(url);
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        const emojiData = [];
-
-        $('.emoji__title').each((index, element) => {
-            const emojiName = $(element).find('.emoji').text();
-            const emojiLink = $(element).siblings('.emoji__copy').find('.emoji').text();
-            const emojiDescription = $(element).siblings('p').text();
-
-            const vendorData = [];
-            $(element).siblings('.emoji__div__tablet').find('.block__emoji').each((i, vendorElement) => {
-                const vendorName = $(vendorElement).find('a').text();
-                const vendorLink = $(vendorElement).find('a').attr('href');
-                const vendorImage = $(vendorElement).find('img').attr('data-src');
-                vendorData.push({
-                    nama: vendorName,
-                    link: 'https://emojigraph.org' + vendorLink,
-                    url: 'https://emojigraph.org' + vendorImage
-                });
-            });
-
-            emojiData.push({
-                name: emojiName,
-                link: emojiLink,
-                description: emojiDescription,
-                vendors: vendorData
-            });
-        });
-
-        return emojiData;
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-async function searchEmojiGraph(q) {
-    try {
-        const response = await fetch('https://emojigraph.org/id/search/?q=' + q + '&searchLang=id');
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        const links = $('#search__first .s__first__ul a').map((index, element) => 'https://emojigraph.org' + $(element).attr('href')).get();
-
-        return links;
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-async function searchEmoji(hem) {
-    try {
-        const result = []
-        const data = await fetch(encodeURI("https://emojipedia.org/" + hem), {
-            method: "GET",
-            headers: {
-                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36"
-            }
-        })
-        const $ = cheerio.load(await data.text())
-        $("body > div.container > div.content > article > section.vendor-list > ul").each(function(asu, chuwi) {
-            $(chuwi).find("li").each(function(sa, na) {
-                const res = {
-                    nama: $(na).find("div > div.vendor-info > h2 > a").text().trim().toLowerCase(),
-                    url: $(na).find("div > div.vendor-image > img").attr("src")
-                }
-                result.push(res)
-            })
-        })
-        const data2 = []
-        result.map(Data => {
-            if (Data.nama == undefined) return;
-            if (Data.url == undefined) return;
-            data2.push(Data)
-        })
-        return data2
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-function getUrlByName(data, nama) {
-    const matchedObject = data.find(item => item.nama === nama);
-
-    if (matchedObject) {
-        return matchedObject.url;
-    }
-
-    return null;
-}
-
-const isUrl = (text) => text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)(jpe?g|gif|png)/, 'gi'))
-
-async function createSticker(img, url, packName, authorName, quality) {
+const createSticker = async (img, url, packName, authorName, quality) => {
     try {
         let stickerMetadata = {
             type: 'full',
@@ -182,7 +29,7 @@ async function createSticker(img, url, packName, authorName, quality) {
     }
 }
 
-async function mp4ToWebp(file, stickerMetadata) {
+const mp4ToWebp = async (file, stickerMetadata) => {
     try {
         if (stickerMetadata) {
             if (!stickerMetadata.pack) stickerMetadata.pack = '‎'
@@ -241,7 +88,7 @@ async function mp4ToWebp(file, stickerMetadata) {
                 stickerServerEndpoint: true
             }
         }
-        let res = await fetch('https://sticker-api.openwa.dev/convertMp4BufferToWebpDataUrl', {
+        const res = await fetch('https://sticker-api.openwa.dev/convertMp4BufferToWebpDataUrl', {
             method: 'post',
             headers: {
                 Accept: 'application/json, text/plain, /',
@@ -254,3 +101,26 @@ async function mp4ToWebp(file, stickerMetadata) {
         console.error('Error:', error);
     }
 }
+
+const handler = async (m, {
+    conn,
+    args,
+    usedPrefix,
+    command
+}) => {
+    let stiker = false;
+    try {
+        const packnames = args[0];
+        const authors = args[1] || '';
+        let q = m.quoted ? m.quoted : m;
+        let mime = q.mtype || '';
+        await m.reply(wait);
+        if (/stickerMessage/g.test(mime)) {
+            const img = await q.download();
+            stiker = await addExif(img, packnames || packname, authors || m.name);
+        } else if (/imageMessage/g.test(mime)) {
+            const img = await q.download();
+            stiker = await createSticker(img, false, packnames || packname, authors || m.name);
+        } else if (/videoMessage/g.test(mime)) {
+            if (q.msg.seconds > 11) return m.reply("Maksimal video durasi 10 detik!");
+            const
