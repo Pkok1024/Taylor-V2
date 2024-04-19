@@ -1,22 +1,43 @@
-let handler = async (m, {
-    text,
-    command,
-    usedPrefix
-}) => {
-    if (!text) throw `Use example ${usedPrefix}${command} i'm alien?`
-    m.reply(`"${[
-        'Mungkin suatu hari',
-        'Tidak juga',
-        'Tidak keduanya',
-        'Kurasa tidak',
-        'Ya',
-        'Coba tanya lagi',
-        'Tidak ada'
-    ].getRandom()}."`)
-}
-handler.help = ['kerang', 'kerangajaib'].map(v => v + ' <teks>')
-handler.tags = ['kerang', 'fun']
+const {
+    List,
+    SenderKeyDistributionMessage
+} = require('whatsapp-web.js');
 
-handler.command = /^(kulit)?kerang(ajaib)?$/i
+const {
+    getRandom
+} = require('../lib/utils');
 
-export default handler
+const handlers = {
+    kerang: {
+        help: 'kerang <teks>',
+        tags: ['kerang', 'fun'],
+        command: /^(kulit)?kerang(ajaib)?$/i,
+        handler: async (m, {
+            text,
+            command,
+            usedPrefix
+        }) => {
+            if (!text) throw `Use example ${usedPrefix}${command} i'm alien?`;
+
+            const answers = [
+                'Mungkin suatu hari',
+                'Tidak juga',
+                'Tidak keduanya',
+                'Kurasa tidak',
+                'Ya',
+                'Coba tanya lagi',
+                'Tidak ada'
+            ];
+
+            m.reply(`"${getRandom(answers, true)}"`, {
+                quoted: m
+            });
+        }
+    }
+};
+
+module.exports = List.ofMap(handlers);
+
+
+const getRandom = (arr, single) => {
+    const randomIndex = Math.floor
