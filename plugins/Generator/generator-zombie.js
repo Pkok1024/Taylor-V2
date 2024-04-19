@@ -7,57 +7,20 @@ import {
     fileTypeFromBuffer
 } from 'file-type';
 
-let handler = async (m, {
-    command,
-    usedPrefix,
-    conn,
-    text,
-    args
-}) => {
-    let q = m.quoted ? m.quoted : m;
-    let mime = (q.msg || q).mimetype || '';
-    if (!mime) {
-        throw 'Tidak ada media yang ditemukan';
-    }
-    let media = await q.download();
-
-    const result = await ToZombi(media);
-
-    if (!result) {
-        throw 'Terjadi kesalahan saat mengonversi gambar ke zombie.';
-    }
-
-    const tag = `@${m.sender.split('@')[0]}`;
-
-    return conn.sendMessage(m.chat, {
-        image: result,
-        caption: `Nih effect *photo-to-zombie* nya\nRequest by: ${tag}`,
-        mentions: [m.sender]
-    }, {
-        quoted: m
-    });
-}
-
-handler.help = ["jadizombie"].map(v => v + " (Balas foto)");
-handler.tags = ["tools"];
-handler.command = /^(jadizombie)$/i;
-handler.limit = true;
-export default handler;
-
-async function ToZombi(imageBuffer) {
+const ToZombi = async (imageBuffer) => {
     try {
         const {
             ext,
             mime
         } = await fileTypeFromBuffer(imageBuffer) || {};
         if (!ext || !mime) {
-            return null;
+            throw new Error('Invalid image format');
         }
-        let form = new FormData();
+        const form = new FormData();
         const blob = new Blob([imageBuffer.toArrayBuffer()], {
             type: mime
         });
-        form.append('image', blob, 'image.' + ext);
+        form.append('image', blob, `image.${ext}`);
 
         const response = await fetch("https://deepgrave-image-processor-no7pxf7mmq-uc.a.run.app/transform_in_place", {
             method: 'POST',
@@ -73,6 +36,52 @@ async function ToZombi(imageBuffer) {
         // Convert base64 to image buffer and return it
         return Buffer.from(base64Data, 'base64');
     } catch (error) {
+        console.error(error);
         return null;
     }
 }
+
+const handler = async (m, {
+    command,
+    usedPrefix,
+    conn,
+    text,
+    args,
+    isQuotedSticker,
+    quoted,
+}) => {
+    if (command.toLowerCase() === 'jadizombie') {
+        if (isQuotedSticker) {
+            throw 'Balas foto, bukan sticker!';
+        }
+
+        let media;
+        if (m.quoted && m.quoted.mimetype && m.quoted.mimetype.startsWith('image')) {
+            media = await m.quoted.download();
+        } else if (m.msg && m.msg.image && m.msg.image.startsWith('data:image')) {
+            media = Buffer.from(m.msg.image.split(',')[1], 'base64');
+        } else {
+            throw 'Tidak ada media yang ditemukan';
+        }
+
+        const result = await ToZombi(media);
+
+        if (!result) {
+            throw 'Terjadi kesalahan saat mengonversi gambar ke zombie.';
+        }
+
+        const tag = `@${m.sender.split('@')[0]}`;
+
+        return conn.sendMessage(m.chat, {
+            image: result,
+            caption: `Nih effect *photo-to-zombie* nya\nRequest by: ${tag}`,
+            mentions: [m.sender]
+        }, {
+            quoted: m
+        });
+    }
+}
+
+handler.help = ["jadizombie"].map(v => v + " (Balas foto)");
+handler.tags = ["tools"];
+handler.command = /^(jad
