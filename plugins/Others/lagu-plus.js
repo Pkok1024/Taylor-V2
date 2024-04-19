@@ -35,8 +35,11 @@ export default handler;
 
 async function songSearch(q) {
     try {
-        const url = 'https://www.liriklaguplus.com/search?q=' + q + '&m=1'; // Ganti dengan URL yang sesuai
-        const html = await (await fetch(url)).text();
+        const url = 'https://www.liriklaguplus.com/search?q=' + encodeURIComponent(q) + '&m=1'; // Use encodeURIComponent to escape special characters
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error fetching data');
+
+        const html = await response.text();
         const $ = cheerio.load(html);
 
         return $('article.post').map((index, article) => ({
@@ -54,11 +57,16 @@ async function songSearch(q) {
 
 async function songLyrics(url) {
     try {
-        const html = await (await fetch(url)).text();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error fetching data');
+
+        const html = await response.text();
         const $ = cheerio.load(html);
+
         const [judulLagu, penyanyi, pencipta, album, lirik] = [
             $('h2').text(), $('Penyanyi').text(), $('Pencipta').text(), $('Album').text(), $('blockquote').text()
         ];
+
         return {
             judulLagu,
             penyanyi,
