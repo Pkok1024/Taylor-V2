@@ -1,26 +1,28 @@
 import fetch from "node-fetch"
 
-let handler = async (m, {
-    conn,
-    args,
-    usedPrefix,
-    command
-}) => {
-    try {
-        let fak = await fetch(global.API("lolhuman", "/api/random/faktaunik", {}, "apikey"))
-        let ta = await fak.json()
-        await conn.reply(m.chat, "*Taukah kamu ternyata*\n" + ta.result + "\n\n*Powered by:* lolhuman", m)
-    } catch (e) {
-        try {
-            let fak = await fetch(global.API("zenz", "/randomtext/faktaunik", {}, "apikey"))
-            let ta = await fak.json()
-            await conn.reply(m.chat, "*Taukah kamu ternyata*\n" + ta.result.message + "\n\n*Powered by:* zenzapi", m)
-        } catch (e) {
-            throw eror
-        }
+const APIs = [
+  { name: "lolhuman", url: "/api/random/faktaunik" },
+  { name: "zenz", url: "/randomtext/faktaunik" },
+];
+
+const handler = async (m, { conn, args, usedPrefix, command }) => {
+  try {
+    for (const api of APIs) {
+      const res = await fetch(global.API(api.name, api.url, {}, "apikey"));
+      const json = await res.json();
+
+      if (json.result) {
+        await conn.reply(m.chat, `*Taukah kamu ternyata*\n${json.result}\n\n*Powered by:* ${api.name}`, m);
+        return;
+      }
     }
-}
-handler.help = ['fakta']
-handler.tags = ['edukasi']
-handler.command = /^(fakta|faktaunik)$/i
-export default handler
+  } catch (e) {
+    console.error(e);
+    await conn.reply(m.chat, "Maaf, ada kesalahan saat mengambil data fakta unik.", m);
+  }
+};
+
+handler.help = ['fakta'];
+handler.tags = ['edukasi'];
+handler.command = /^(fakta|faktaunik)$/i;
+export default handler;
