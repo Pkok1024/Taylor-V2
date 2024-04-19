@@ -1,5 +1,25 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import * as moment from 'moment';
+
+const {
+    v4: uuidv4
+} = require('uuid');
+
+const usersFile = './users.json';
+let users = loadUsers();
+
+function loadUsers() {
+    try {
+        return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+    } catch (err) {
+        return [];
+    }
+}
+
+function saveUsers() {
+    fs.writeFileSync(usersFile, JSON.stringify(users));
+}
 
 let handler = async (m, {
     conn,
@@ -8,50 +28,47 @@ let handler = async (m, {
     DevMode
 }) => {
     try {
-        let u = global.db.data.users[m.sender];
-        u.lastbansos = u.lastbansos || 0;
-        let Aku = `${Math.floor(Math.random() * 101)}`.trim();
-        let Kamu = `${Math.floor(Math.random() * 81)}`.trim(); // Menantang 😏
-        let A = (Aku * 1);
-        let K = (Kamu * 1);
-        let kb = 'https://telegra.ph/file/afcf9a7f4e713591080b5.jpg';
-        let mb = 'https://telegra.ph/file/d31fcc46b09ce7bf236a7.jpg';
-        let t = (new Date - u.lastbansos);
-        let timers = clockString(604800000 - t);
+        let user = users.find(u => u.id === m.sender);
+        if (!user) {
+            user = {
+                id: m.sender,
+                lastBansos: 0,
+                money: 0,
+            };
+            users.push(user);
+            saveUsers();
+        }
 
-        if (t > 300000) {
+        const Aku = Math.floor(Math.random() * 101);
+        const Kamu = Math.floor(Math.random() * 81); // Menantang 😏
+        const A = Aku;
+        const K = Kamu;
+        const kb = 'https://telegra.ph/file/afcf9a7f4e713591080b5.jpg';
+        const mb = 'https://telegra.ph/file/d31fcc46b09ce7bf236a7.jpg';
+        const timeDiff = moment.duration(moment(new Date()).diff(moment(user.lastBansos)));
+        const timers = `${timeDiff.days()} Hari, ${timeDiff.hours()} Jam, ${timeDiff.minutes()} Menit, ${timeDiff.seconds()} Detik`;
+
+        if (timeDiff.asMilliseconds() > 300000) {
             if (A > K) {
-                conn.sendFile(m.chat, kb, 'b.jpg', `*Kamu Tertangkap!* Korupsi dana bansos 🕴️💰, Denda *3 Juta* rupiah 💵`, m);
-                u.money -= 3000000;
-                u.lastbansos = new Date * 1;
+                await conn.sendFile(m.chat, kb, 'b.jpg', `*Kamu Tertangkap!* Korupsi dana bansos 🕴️💰, Denda *3 Juta* rupiah 💵`, m);
+                user.money -= 3000000;
+                user.lastBansos = new Date();
             } else if (A < K) {
-                u.money += 3000000;
-                conn.sendFile(m.chat, mb, 'b.jpg', `*Berhasil Korupsi!* Dana bansos 🕴️💰, Dapatkan *3 Juta* rupiah 💵`, m);
-                u.lastbansos = new Date * 1;
+                user.money += 3000000;
+                await conn.sendFile(m.chat, mb, 'b.jpg', `*Berhasil Korupsi!* Dana bansos 🕴️💰, Dapatkan *3 Juta* rupiah 💵`, m);
+                user.lastBansos = new Date();
             } else {
-                conn.reply(m.chat, `*Maaf!* Kamu tidak berhasil melakukan korupsi bansos dan kamu tidak akan masuk penjara karena kamu *melarikan diri* 🏃`, m);
-                u.lastbansos = new Date * 1;
+                await conn.reply(m.chat, `*Maaf!* Kamu tidak berhasil melakukan korupsi bansos dan kamu tidak akan masuk penjara karena kamu *melarikan diri* 🏃`, m);
+                user.lastBansos = new Date();
             }
-        } else conn.reply(m.chat, `*Sudah Melakukan Korupsi!* 💰\nHarus menunggu selama agar bisa korupsi bansos kembali\n▸ 🕓 ${timers}`, m);
+        } else {
+            await conn.reply(m.chat, `*Sudah Melakukan Korupsi!* 💰\nHarus menunggu selama agar bisa korupsi bansos kembali\n▸ 🕓 ${timers}`, m);
+        }
+        saveUsers();
     } catch (e) {
-        throw `Terjadi kesalahan`;
+        console.error(e);
+        await conn.reply(m.chat, `Terjadi kesalahan`, m);
     }
 };
 
-handler.help = ['bansos'];
-handler.tags = ['rpg'];
-handler.command = /^(bansos|korupsi)$/i;
-handler.group = true;
-export default handler;
-
-function pickRandom(list) {
-    return list[Math.floor(Math.random() * list.length)];
-}
-
-function clockString(ms) {
-    let d = isNaN(ms) ? '--' : Math.floor(ms / 86400000);
-    let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000) % 24;
-    let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60;
-    let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60;
-    return ['\n*' + d + '* _Hari_ ☀️\n ', '*' + h + '* _Jam_ 🕐\n ', '*' + m + '* _Menit_ ⏰\n ', '*' + s + '* _Detik_ ⏱️ '].map(v => v.toString().padStart(2, 0)).join('');
-}
+handler.help = ['
