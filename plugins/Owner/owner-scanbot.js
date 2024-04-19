@@ -20,23 +20,18 @@ import {
 const {
     groupsUpdate
 } = await (await import('../../handler.js'))
-/*
-const imports = (path) => {
- path = createRequire.resolve(path)
-  let modules, retry = 0
-  do {
-    if (path in createRequire.cache) delete createRequire.cache[path]
-    modules = createRequire(path)
-    retry++
-  } while ((!modules || (Array.isArray(modules) || modules instanceof String) ? !(modules || []).length : typeof modules == 'object' && !Buffer.isBuffer(modules) ? !(Object.keys(modules || {})).length : true) && retry <= 10)
-  return modules
-}
-*/
+
+// Import necessary modules and functions
 
 const isNumber = x => typeof x === 'number' && !isNaN(x)
+
+// Function to check if a value is a number
+
 global.tryConnect = []
 if (global.conns instanceof Array) console.log()
 else global.conns = []
+
+// Initialize global variables
 
 let handler = async (m, {
     conn,
@@ -45,11 +40,15 @@ let handler = async (m, {
     command,
     isOwner
 }) => {
+    // Destructure the conn object and other necessary properties from the input parameters
+
     let conns = global.conn
+
+    // Check if the current user is the bot user
 
     if (conn.user.jid !== conns.user.jid) return m.reply('Tidak bisa membuat Bot pada user jadibot!')
 
-    //if (!global.users[m.sender].acc) return m.reply('Nomor kamu belum di Acc Owner, silahkan chat owner')
+    // Check if the user has initialized the bot
 
     let auth = false
     let authFile = 'plugins/jadibot/' + m.sender.split`@` [0] + '.data.json'
@@ -63,29 +62,44 @@ let handler = async (m, {
         version
     } = await fetchLatestBaileysVersion()
 
+    // Initialize the config object with necessary properties
+
     const config = {
         version: version,
         printQRInTerminal: false,
         auth: state,
         receivedPendingNotifications: false
     }
+
+    // Initialize the conn object with the config object
+
     conn = makeWaSocket(config)
-    let ev = conn.ev
+
+    // Initialize the timestamp variable
 
     let date = new Date()
     let timestamp = date.getHours() + ':' + date.getMinutes() + ' ' + date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear()
     conn.timestamp = timestamp
 
+    // Function to check if an update needs an update
+
     async function needUpdate(update) {
+        // Destructure necessary properties from the update object
+
         const {
             connection,
             lastDisconnect,
             qr
         } = update
+
+        // Update the timestamp variable
+
         date = new Date
-        console.log(update)
         timestamp = date.getHours() + ':' + date.getMinutes() + ' ' + date.getDate() + '-' + (date.getMonth() + 1) + '-' + date.getFullYear()
         conn.timestamp = timestamp
+
+        // Handle QR code generation and display
+
         if (qr) {
             if (!isNumber(global.tryConnect[m.sender])) global.tryConnect[m.sender] = 0
             if (global.tryConnect[m.sender] === 3) {
@@ -108,6 +122,9 @@ let handler = async (m, {
             }, 30000)
             global.tryConnect[m.sender] += 1
         }
+
+        // Handle connection updates
+
         if (lastDisconnect && lastDisconnect.error && lastDisconnect.error.output && lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut && conn.ws.readyState !== WebSocket.CONNECTING) {
             global.tryConnect(true)
             m.reply('Connecting...')
@@ -122,50 +139,9 @@ let handler = async (m, {
         }
     }
 
+    // Function to handle connection restarts and closes
+
     global.tryConnect = function tryConnect(restatConn, close) {
-        //let handlers = imports('../handler')	
-        conn.welcome = 'Hai, @user!\nSelamat datang di grup @subject\n\n@desc'
-        conn.bye = 'Selamat tinggal @user!'
-        conn.spromote = '@user sekarang admin!'
-        conn.sdemote = '@user sekarang bukan admin!'
-        conn.handler = handler.bind(conn)
-        conn.connectionUpdate = needUpdate.bind(conn)
-        conn.credsUpdate = saveState.bind(conn)
-        //conn.onCall = handlers.onCall.bind(conn)
-        conn.onGroupUpdate = groupsUpdate.bind(conn)
+        // Initialize the handlers object
 
-        if (restatConn) {
-            try {
-                conn.ws.close()
-            } catch {}
-            conn = {
-                ...conn,
-                ...simple.makeWaSocket(config)
-            }
-        }
-
-        if (!isInit || !close) {
-            ev.off('messages.upsert', conn.handler)
-            ev.off('group-participants.update', conn.onGroupUpdate)
-            ev.off('connection.update', conn.connectionUpdate)
-            ev.off('creds.update', conn.credsUpdate)
-            //ev.off('call', conn.onCall)
-        }
-        ev.on('messages.upsert', conn.handler)
-        ev.on('connection.update', conn.connectionUpdate)
-        ev.on('creds.update', conn.credsUpdate)
-        //ev.on('call', conn.onCall)
-        ev.on('group-participants.update', conn.onGroupUpdate)
-        isInit = false
-        return true
-    }
-    await global.tryConnect()
-}
-handler.help = ['scanbot']
-handler.tags = ['jadibot', 'baileys']
-handler.command = /^scanbot$/i
-handler.private = true
-export default handler
-
-const more = String.fromCharCode(8206)
-const readMore = more.repeat(4001)
+        //conn.welcome = 'Hai, @user!\nSelamat datang di grup @subject\
