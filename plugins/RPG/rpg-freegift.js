@@ -1,81 +1,90 @@
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+const {
+    List,
+    Sender,
+    Replier,
+    Utils: {
+        shuffleArray,
+        getRandomInt,
+        formatTimeDifference
     }
-    return array;
-}
+} = require('whatsapp-web.js');
 
-let handler = async (m, {
-    conn,
-    args,
-    usedPrefix
-}) => {
-    const user = global.db.data.users[m.sender];
-    const lastgiftTime = user.lastgift || 0;
+const {
+    getUser,
+    updateUser,
+    getFreegiftCodes,
+    useFreegiftCode,
+    getCooldownDuration
+} = require('../database');
+
+const {
+    getRandomRewards
+} = require('../helpers');
+
+module.exports = async (client, message) => {
+    const user = await getUser(Sender.getId(message));
+    const lastGiftTime = user.last_gift || 0;
     const currentTime = new Date().getTime();
-    const cooldownDuration = 3600000;
+    const cooldownDuration = getCooldownDuration();
 
-    conn.freegift = conn.freegift || {};
-
-    if (currentTime - lastgiftTime < cooldownDuration) {
-        const remainingCooldown = cooldownDuration - (currentTime - lastgiftTime);
-        const remainingTime = getRemainingTime(remainingCooldown);
-        return conn.reply(m.chat, `⏰ Maaf, kamu harus menunggu ${remainingTime} lagi sebelum menggunakan FreeGift lagi!`, m);
+    if (currentTime - lastGiftTime < cooldownDuration) {
+        const remainingCooldown = cooldownDuration - (currentTime - lastGiftTime);
+        return Replier.reply(message, `⏰ Maaf, kamu harus menunggu ${formatTimeDifference(remainingCooldown)} lagi sebelum menggunakan FreeGift lagi!`);
     }
 
     const today = new Date().toLocaleDateString();
-    let freegift = conn.freegift[m.sender] || (conn.freegift[m.sender] = {
-        code: [],
-        time: today
-    });
+    const freegiftCodes = await getFreegiftCodes(Sender.getId(message));
 
-    if (!args[0]) return conn.reply(m.chat, `❓ Kamu belum memasukkan Kode FreeGiftmu!\n\nContoh: *${usedPrefix}freegift code*`, m);
+    const args = message.body.slice(client.prefix.length).trim().split(/ +/);
+    const code = args[0];
 
-    const validGiftcode = freegift.code.filter(code => args[0] === code);
+    if (!code) return Replier.reply(message, `❓ Kamu belum memasukkan Kode FreeGiftmu!\n\nContoh: *${client.prefix}freegift code*`);
+
+    const validGiftcode = freegiftCodes.filter(freegiftCode => freegiftCode.code === code && freegiftCode.used === false && freegiftCode.date === today);
 
     if (!validGiftcode.length) {
-        const remainingTime = getRemainingTime(cooldownDuration);
-        return conn.reply(m.chat, `Maaf, kode FreeGift tidak valid atau sudah digunakan. Silahkan coba lagi setelah ${remainingTime}!`, m);
+        const remainingTime = formatTimeDifference(cooldownDuration);
+        return Replier.reply(message, `Maaf, kode FreeGift tidak valid atau sudah digunakan. Silahkan coba lagi setelah ${remainingTime}!`);
     }
 
     const maxExp = 10000,
         maxMoney = 10000;
-    const rewards = shuffle([{
+    const rewards = shuffleArray([{
         text: '💠 XP',
-        value: Math.min(Math.floor(Math.random() * maxExp), maxExp)
+        value: getRandomInt(maxExp)
     }, {
         text: '🎫 Limit',
-        value: Math.min(Math.floor(Math.random() * 5) + 1, 5)
+        value: getRandomInt(5) + 1
     }, {
         text: '💹 Money',
-        value: Math.min(Math.floor(Math.random() * maxMoney), maxMoney)
+        value: getRandomInt(maxMoney)
     }, {
         text: '🥤 Potion',
-        value: Math.min(Math.floor(Math.random() * 5) + 1, 5)
+        value: getRandomInt(5) + 1
     }]);
 
-    conn.reply(m.chat, `*🎉 SELAMAT!*\nKamu telah mendapatkan:\n${rewards.map(r => `${r.text}: ${r.value}`).join('\n')}`, m);
+    const listMessage = new List('🎉 SELAMAT!', `Kamu telah mendapatkan:\n${rewards.map(r => `${r.text}: ${r.value}`).join('\n')}`, rewards.map(r => `${r.text}: ${r.value}`));
+    await Replier.reply(message, listMessage, {
+        quotedMessage: message.quotedMessage
+    });
 
     user.exp += rewards.find(r => r.text === '💠 XP').value;
     user.limit += rewards.find(r => r.text === '🎫 Limit').value;
     user.money += rewards.find(r => r.text === '💹 Money').value;
     user.potion += rewards.find(r => r.text === '🥤 Potion').value;
 
-    freegift.code = freegift.code.filter(code => code !== args[0]); // Remove used code
-    user.lastgift = currentTime; // Update lastgift time
+    await useFreegiftCode(Sender.getId(message), code);
+    await updateUser(user);
 
-    setTimeout(() => conn.reply(m.chat, '⏰ Waktunya menggunakan FreeGift lagi!\nKetik *freegift* untuk mendapatkan hadiah spesial.', m), cooldownDuration);
+    user.last_gift = currentTime;
+    setTimeout(async () => {
+        const cooldownMessage = '⏰ Waktunya menggunakan FreeGift lagi!\nKetik ' + client.prefix + 'freegift untuk mendapatkan hadiah spesial.';
+        await Replier.reply(message.chat, cooldownMessage, {
+            quotedMessage: message
+        });
+    }, cooldownDuration);
 };
 
-handler.help = ['freegift <kode>'];
-handler.tags = ['rpg'];
-handler.command = /^freegift$/i;
-
-export default handler;
-
-function getRemainingTime(ms) {
-    const hours = Math.floor(ms / 3600000);
-    const minutes = Math.floor((ms % 3600000) / 60000);
-    return `${hours > 0 ? `${hours} jam ` : ''}${minutes > 0 ? `${minutes} menit` : ''}`.trim();
-}
+module.exports.help = ['freegift <kode>'];
+module.exports.tags = ['rpg'];
+module.exports.command = /^freegift$/i;
