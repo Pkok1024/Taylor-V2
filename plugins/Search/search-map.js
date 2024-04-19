@@ -1,61 +1,46 @@
-const {
-    generateSerpApiUrl
-} = await (await import('../../lib/serpapi.js'));
+// Import the 'serpapi.js' module and destructure the 'generateSerpApiUrl' function from it
+const { generateSerpApiUrl } = await (await import('../../lib/serpapi.js'));
 
-let handler = async (m, {
-    command,
-    usedPrefix,
-    conn,
-    text,
-    args
-}) => {
-    let [tema, urutan] = text.split(/[^\w\s]/g)
-    if (!tema) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]")
+// Define the 'handler' function, which takes in several parameters including 'm', 'command', 'usedPrefix', 'conn', 'text', and 'args'
+const handler = async (m, { command, usedPrefix, conn, text, args }) => {
+    // Split the input text into 'tema' and 'urutan' using a regex pattern
+    let [tema, urutan] = text.split(/[^\w\s]/g);
 
-    await m.reply(wait)
+    // Check if 'tema' is not provided and return an error message if it's not
+    if (!tema) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]");
+
+    // Reply with a loading message
+    await m.reply(wait);
+
     try {
+        // Define the 'param' object with the required parameters for the 'generateSerpApiUrl' function
         const param = {
             api_key: 'f70cce2ec221209bcd45af4533adbbc51c51b682c29251b618061115c6e95d5c',
             engine: 'google_maps',
             q: tema
         };
-        let all = await generateSerpApiUrl(param)
-        let data = all.local_results
-        if (!urutan) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"))
-        if (isNaN(urutan)) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"))
-        if (urutan > data.length) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"))
-        let out = data[urutan - 1]
+
+        // Call the 'generateSerpApiUrl' function with the 'param' object and wait for the response
+        let all = await generateSerpApiUrl(param);
+
+        // Extract the 'local\_results' array from the response
+        let data = all.local\_results;
+
+        // Check if 'urutan' is not provided and return an error message if it's not
+        if (!urutan) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"));
+
+        // Check if 'urutan' is not a number and return an error message if it's not
+        if (isNaN(urutan)) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"));
+
+        // Check if 'urutan' is greater than the length of the 'data' array and return an error message if it is
+        if (urutan > data.length) return m.reply("Input query!\n*Example:*\n.viewmap [area]|[nomor]\n\n*Pilih angka yg ada*\n" + data.map((item, index) => `*${index + 1}.* ${item.title}`).join("\n"));
+
+        // Extract the selected data from the 'data' array based on the 'urutan' input
+        let out = data[urutan - 1];
+
+        // Construct the caption string with the required details
         let caption = `🔍 *[ HASIL ]*
 
-🆔 *ID:* ${out.place_id || 'Tidak ada'}
+🆔 *ID:* ${out.place\_id || 'Tidak ada'}
 📋 *Deskripsi:* ${out.title || 'Tidak ada'}
-📍 *Alamat:* ${out.address || 'Tidak ada'}
-⭐ *Rating:* ${out.rating || 'Tidak ada'}
-📝 *Ulasan:* ${out.reviews || 'Tidak ada'}
-📞 *Nomor Telepon:* ${out.phone || 'Tidak ada'}`;
-
-        const data2 = {
-            api_key: 'f70cce2ec221209bcd45af4533adbbc51c51b682c29251b618061115c6e95d5c',
-            engine: 'google_maps_photos',
-            data_id: out.data_id
-        };
-
-        const result2 = await generateSerpApiUrl(data2)
-
-        await conn.sendMessage(m.chat, {
-            image: {
-                url: result2.photos[0].image || out.thumbnail
-            },
-            caption: caption
-        }, {
-            quoted: m
-        })
-
-    } catch (e) {
-        await m.reply(eror)
-    }
-}
-handler.help = ["viewmap *[area]|[nomor]*"]
-handler.tags = ["search"]
-handler.command = /^(viewmap)$/i
-export default handler
+📍 *Alam
