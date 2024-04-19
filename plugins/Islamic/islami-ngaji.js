@@ -1,7 +1,8 @@
 import cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
-let handler = async (m, {
+// The main function that handles the command
+const handler = async (m, {
     conn,
     args,
     usedPrefix,
@@ -9,23 +10,40 @@ let handler = async (m, {
     command
 }) => {
     try {
-        let lister = [
+        // List of available features
+        const lister = [
             "ayat",
             "surah"
         ]
 
-        let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
+        // Split the input text into feature, inputs, inputs_, inputs__, inputs___
+        const [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
 
-        if (!lister.includes(feature)) return m.reply("*Contoh:*\n.ngaji ayat|edisi\n\n*Pilih type yang ada:*\n\n" + lister.map(v => "  ○ " + v).join("\n"))
+        // Check if the feature is valid
+        if (!lister.includes(feature)) {
+            // Return an error message if the feature is not valid
+            return m.reply("*Contoh:*\n.ngaji ayat|edisi\n\n*Pilih type yang ada:*\n\n" + lister.map(v => "  ○ " + v).join("\n"))
+        }
 
         if (lister.includes(feature)) {
             if (feature == "ayat") {
-                if (!inputs) return m.reply("Masukkan query link\nContoh: .ngaji 1|3")
+                // Check if inputs are provided
+                if (!inputs) {
+                    // Return an error message if inputs are not provided
+                    return m.reply("Masukkan query link\nContoh: .ngaji 1|3")
+                }
+                // Wait for the response to be sent
                 await m.reply(wait)
-                if (isNaN(inputs) || isNaN(inputs_)) return m.reply("Input harus berupa angka")
+                // Check if inputs are numbers
+                if (isNaN(inputs) || isNaN(inputs_)) {
+                    // Return an error message if inputs are not numbers
+                    return m.reply("Input harus berupa angka")
+                }
 
-                let data = await getEditionData()
-                let edisi = data.data.map((item, index) => {
+                // Fetch the edition data
+                const data = await getEditionData()
+                // Format the edition data as a string
+                const edisi = data.data.map((item, index) => {
                     return `🔍 *[ EDISI ${index + 1} ]*
 
 🌐 *English:* ${item.englishName}
@@ -33,15 +51,28 @@ let handler = async (m, {
 `
                 }).filter(v => v).join("\n\n________________________\n\n")
 
-                if (!inputs_) return m.reply("Pilih edisi yang Anda inginkan\nContoh: .ngaji ayat|edisi\n\n" + edisi)
+                // Check if inputs_ are provided
+                if (!inputs_) {
+                    // Return an error message if inputs_ are not provided
+                    return m.reply("Pilih edisi yang Anda inginkan\nContoh: .ngaji ayat|edisi\n\n" + edisi)
+                }
 
+                // Check if inputs_ are within the valid range
                 if (inputs_ >= 1 && inputs_ <= data.data.length) {
+                    // Get the bagian data based on inputs_
                     const index = inputs_ - 1;
-                    let bagian = data.data[index];
-                    let res = await getAyahData(inputs, bagian.identifier)
-                    if (res.code !== 200) return m.reply(res.data)
-                    let imagers = await getImageUrl(res.data.number, res.data.surah.number)
-                    let cap = `🔍 *[ EDISI ${res.data.edition.englishName} ]*
+                    const bagian = data.data[index];
+                    // Fetch the ayah data
+                    const res = await getAyahData(inputs, bagian.identifier)
+                    // Check if the response code is 200
+                    if (res.code !== 200) {
+                        // Return an error message if the response code is not 200
+                        return m.reply(res.data)
+                    }
+                    // Fetch the image URL
+                    const imagers = await getImageUrl(res.data.number, res.data.surah.number)
+                    // Construct the caption
+                    const cap = `🔍 *[ EDISI ${res.data.edition.englishName} ]*
 
 🌐 *Name:* ${res.data.surah.name}
 📢 *Surah Number:* ${res.data.surah.number}
@@ -50,7 +81,9 @@ let handler = async (m, {
 
 ${wait}
 `
+                    // Send the image and the caption
                     await conn.sendFile(m.chat, imagers || logo, "", cap, m)
+                    // Send the audio
                     await conn.sendMessage(m.chat, {
                         audio: {
                             url: res.data.audio
@@ -64,103 +97,35 @@ ${wait}
                         quoted: m
                     })
                 } else {
+                    // Return an error message if inputs_ are not within the valid range
                     return m.reply('Nomor yang diminta lebih besar dari jumlah objek yang ada.');
                 }
             }
 
             if (feature == "surah") {
-                if (!inputs) return m.reply("Masukkan query link\nContoh: .ngaji 1|3")
-                if (inputs > 114) return m.reply("Input lebih dari 114")
+                // Check if inputs are provided
+                if (!inputs) {
+                    // Return an error message if inputs are not provided
+                    return m.reply("Masukkan query link\nContoh: .ngaji 1|3")
+                }
+                // Check if inputs are numbers
+                if (inputs > 114) {
+                    // Return an error message if inputs are greater than 114
+                    return m.reply("Input lebih dari 114")
+                }
+                // Wait for the response to be sent
                 await m.reply(wait)
-                if (isNaN(inputs) || isNaN(inputs_)) return m.reply("Input harus berupa angka")
-                let data = await getEditionDataSurah()
-                let edisi = data.map((item, index) => {
+                if (isNaN(inputs) || isNaN(inputs_)) {
+                    // Return an error message if inputs are not numbers
+                    return m.reply("Input harus berupa angka")
+                }
+                // Fetch the edition data
+                const data = await getEditionDataSurah()
+                // Format the edition data as a string
+                const edisi = data.map((item, index) => {
                     return `🔍 *[ EDISI ${index + 1} ]*
 
 🌐 *English:* ${item.englishName}
 📛 *Name:* ${item.name}
 `
-                }).filter(v => v).join("\n\n________________________\n\n")
-
-                if (!inputs_) return m.reply("Pilih edisi yang Anda inginkan\nContoh: .ngaji ayat|edisi\n\n" + edisi)
-
-                if (inputs_ >= 1 && inputs_ <= data.length) {
-                    const index = inputs_ - 1;
-                    let bagian = data[index];
-                    let res = await getSurahData(inputs, bagian.identifier)
-                    if (res.code !== 200) return m.reply(res.data)
-                    let imagers = await getImageUrl(res.data.number, res.data.numberOfAyahs)
-                    let audios = await getAudioUrl(bagian.identifier, res.data.number)
-                    let cap = `🌐 *Name:* ${res.data.name}
-
-📢 *Surah:* ${res.data.number}
-📖 *English:* ${res.data.englishName}
-
-${wait}
-`
-                    await conn.sendFile(m.chat, imagers || logo, "", cap, m)
-                    await conn.sendMessage(m.chat, {
-                        audio: {
-                            url: audios
-                        },
-                        seconds: fsizedoc,
-                        ptt: true,
-                        mimetype: "audio/mpeg",
-                        fileName: "vn.mp3",
-                        waveform: [100, 0, 100, 0, 100, 0, 100]
-                    }, {
-                        quoted: m
-                    })
-                } else {
-                    return m.reply('Nomor yang diminta lebih besar dari jumlah objek yang ada.');
-                }
-            }
-        }
-    } catch (e) {
-        throw e;
-    }
-}
-
-handler.help = ["ngaji"]
-handler.tags = ["internet"]
-handler.command = /^(ngaji)$/i
-export default handler
-
-/* New Line */
-async function fetchJson(url) {
-    const response = await fetch(url);
-    const data = await response.json();
-    return data;
-}
-
-async function getEditionData() {
-    const editionUrl = 'https://api.alquran.cloud/v1/edition/format/audio';
-    const editionData = await fetchJson(editionUrl);
-    return editionData;
-}
-
-async function getEditionDataSurah() {
-    const editionUrl = 'https://raw.githubusercontent.com/islamic-network/cdn/master/info/cdn_surah_audio.json';
-    const editionData = await fetchJson(editionUrl);
-    return editionData;
-}
-
-async function getAyahData(ayah, edition) {
-    const ayahUrl = `https://api.alquran.cloud/v1/ayah/${ayah}/${edition}`;
-    const ayahData = await fetchJson(ayahUrl);
-    return ayahData;
-}
-
-async function getSurahData(surah, edition) {
-    const surahUrl = `https://api.alquran.cloud/v1/surah/${surah}/${edition}`;
-    const surahData = await fetchJson(surahUrl);
-    return surahData;
-}
-
-function getImageUrl(surah, ayah) {
-    return `https://cdn.islamic.network/quran/images/high-resolution/${surah}_${ayah}.png`;
-}
-
-function getAudioUrl(edition, number) {
-    return `https://cdn.islamic.network/quran/audio-surah/128/${edition}/${number}.mp3`;
-}
+                }).filter(v
