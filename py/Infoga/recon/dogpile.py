@@ -1,34 +1,48 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*- 
-#
-# @name   : Infoga - Email Information Gathering
-# @url    : http://github.com/m4ll0k
-# @author : Momo Outaadi (m4ll0k)
 
-from lib.output import *
-from lib.request import *
-from lib.parser import *
+"""
+@name   : Infoga - Email Information Gathering
+@url    : http://github.com/m4ll0k
+@author : Momo Outaadi (m4ll0k)
+"""
+
+import requests
+from lib.output import Output
+from lib.parser import Parser
+
+class Request:
+    """
+    Base request class for making HTTP requests.
+    """
+    def __init__(self):
+        self.output = Output()
+
+    def send(self, method: str, url: str, headers: dict, **kwargs) -> requests.Response:
+        """
+        Sends an HTTP request and returns the response.
+
+        :param method: The HTTP method (GET, POST, etc.)
+        :param url: The URL to make the request to
+        :param headers: The HTTP headers to include in the request
+        :param kwargs: Additional keyword arguments to pass to the requests.get() or requests.post() method
+        :return: The response object from the requests library
+        """
+        response = requests.request(method, url, headers=headers, **kwargs)
+        return response
 
 class Dogpile(Request):
-	def __init__(self,target):
-		Request.__init__(self)
-		self.target = target
+    """
+    A class for making requests to the Dogpile search engine.
+    """
+    def __init__(self, target: str):
+        Request.__init__(self)
+        self.target = target
 
-	def search(self):
-		test('Searching "%s" in DogPile...'%(self.target))
-		url = "http://www.dogpile.com/search/web?qsi=0&q=%40{target}".format(
-			target=self.target)
-		try:
-			resp = self.send(
-				method = 'GET',
-				url = url,
-				headers = {
-							'Host':'www.dogpile.com'
-				}
-				)
-			return self.getemail(resp.content,self.target)
-		except Exception as e:
-			pass
+    def search(self) -> list[str]:
+        """
+        Searches Dogpile for the target email address and returns any found email addresses.
 
-	def getemail(self,content,target):
-		return parser(content,target).email()
+        :return: A list of email addresses found in the search results
+        """
+        self.output.test('Searching "{}" in DogPile...'.format(
