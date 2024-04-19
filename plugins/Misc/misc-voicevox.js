@@ -23,34 +23,8 @@ let handler = async (m, {
     args,
     usedPrefix,
     text,
-    command
+    command,
+    quot,
 }) => {
 
-    let yh = key
-    let apikey = yh[Math.floor(Math.random() * yh.length)]
-    let quot = m.quoted ? m.quoted : m;
-    let q = text ? text : quot.text;
-    if (!text) throw `Masukan text nya!\n\nExample: ${usedPrefix + command} pagi kawan-kawan`
 
-    try {
-        let ress = await translate(text, {
-            to: defaultLang,
-            autoCorrect: true
-        }).catch(_ => null)
-
-        let audio = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?text=${encodeURIComponent(ress.text)}&key=${apikey}`
-        await conn.sendFile(m.chat, audio, '', '', m, null, {
-            ptt: true,
-            waveform: [100, 0, 100, 0, 100, 0, 100],
-            contextInfo: adReplyS.contextInfo
-        });
-    } catch (err) {
-        m.reply('Error!\n\n' + err)
-    }
-}
-
-handler.help = ['voicevox']
-handler.tags = ['ai']
-handler.command = ['voicevox', 'michi']
-handler.limit = true
-export default handler
