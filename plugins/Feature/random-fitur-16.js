@@ -1,278 +1,75 @@
 import fetch from 'node-fetch'
+import { getRandom } from 'flaaa'
 
-let handler = async (m, {
-    conn,
-    usedPrefix,
-    text,
-    args,
-    command
-}) => {
-    let imgr = flaaa.getRandom()
-    let urut = text.split`|`
-    let one = urut[1]
-    let two = urut[2]
-    let three = urut[3]
+const baseURL = 'https://cataas.com'
+const baseURLMuseum = 'https://collectionapi.metmuseum.org/public/collection/v1'
 
-    if (command == 'cts') {
-        if (!args[0]) {
-            let caption = `*MASUKKAN TEKS:*
-Contoh:\n${usedPrefix + command} popular
+const handler = async (m, { conn, usedPrefix, text, args, command }) => {
+  if (command === 'cts') {
+    const imgr = getRandom()
+    const list =
+      'cat\ntag\ngif\nsay\tsay\tsay\tsay\ntype\nwidth\ngif\n'
+    const caption = `*MASUKKAN TEKS:*\nContoh:\n${usedPrefix + command} ${list}\n\n*List:*\n${htjava} cat\n${htjava} tag\n${htjava} gif\n${htjava} say\n${htjava} tsay\n${htjava} csay\n${htjava} gsay\n${htjava} width\n${htjava} type\n`
 
-*List:*
-${htjava} cat
-${htjava} tag
-${htjava} gif
-${htjava} say
-${htjava} tsay
-${htjava} csay
-${htjava} gsay
-${htjava} width
-${htjava} type
-`
+    if (!args[0]) return conn.sendFile(m.chat, imgr + command, '', caption, m)
 
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'cat') {
-            let res = `https://cataas.com/cat`
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'tag') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |white`)
-            let res = 'https://cataas.com/cat/' + one
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'gif') {
-            let res = 'https://cataas.com/cat/gif'
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'say') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |halo`)
-            let res = 'https://cataas.com/cat/says/' + one
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'tsay') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |cute|white`)
-            let res = 'https://cataas.com/cat/' + one + '/says/' + two
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'csay') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |hello|50|red`)
-            let res = 'https://cataas.com/cat/says/' + one + '?size=' + two + '&color=' + three
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'type') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |hq`)
-            let res = 'https://cataas.com/cat?type=' + one
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'width') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |100`)
-            let res = 'https://cataas.com/cat?width=' + one
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
-        if (args[0] == 'gsay') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://cataas.com/cat/gif/says/' + one + '?filter=sepia&color=orange&size=40&type=or'
-            let caption = `*Result:*`
-            await conn.sendFile(m.chat, res, '', caption, m)
-        }
+    const methods = {
+      cat: () => `${baseURL}/cat`,
+      tag: (tag) => `${baseURL}/cat/${tag}`,
+      gif: () => `${baseURL}/cat/gif`,
+      say: (text) => `${baseURL}/cat/says/${text}`,
+      tsay: (text, color, size) => `${baseURL}/cat/${color}/says/${text}?size=${size}`,
+      csay: (text, size, color) => `${baseURL}/cat/says/${text}?size=${size}&color=${color}`,
+      type: (type) => `${baseURL}/cat?type=${type}`,
+      width: (width) => `${baseURL}/cat?width=${width}`,
+      gsay: (text) => `${baseURL}/cat/gif/says/${text}?filter=sepia&color=orange&size=40&type=or`,
     }
 
-    if (command == 'museum') {
-        if (!args[0]) {
-            let caption = `*MASUKKAN TEKS:*
-Contoh:\n${usedPrefix + command} q |Contoh
+    const method = methods[args[0]]
+    if (!method) return m.reply(`Example: ${usedPrefix + command} ${Object.keys(methods).join('|')}`)
 
-*List:*
-${htjava} high
-${htjava} id
-${htjava} q
-${htjava} onview
-${htjava} aoc
-${htjava} med
-${htjava} img
-${htjava} loc
-${htjava} time
-`
+    try {
+      const res = await fetch(method(...args.slice(1)))
+      const data = await res.buffer()
+      await conn.sendFile(m.chat, data, '', `*Result:*`, m)
+    } catch (err) {
+      m.reply(`Error: ${err.message}`)
+    }
+  }
 
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'high') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?isHighlight=true&q=' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'id') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |123456`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/objects/' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*accessionNumber:* ${json.accessionNumber}
-*accessionYear:* ${json.accessionYear}
-*artistAlphaSort:* ${json.artistAlphaSort}
-*artistBeginDate:* ${json.artistBeginDate}
-*artistDisplayBio:* ${json.artistDisplayBio}
-*artistDisplayName:* ${json.artistDisplayName}
-*artistEndDate:* ${json.artistEndDate}
-*artistGender:* ${json.artistGender}
-*artistNationality:* ${json.artistNationality}
-*artistPrefix:* ${json.artistPrefix}
-*artistRole:* ${json.artistRole}
-*artistSuffix:* ${json.artistSuffix}
-*artistULAN_URL:* ${json.artistULAN_URL}
-*artistWikidata_URL:* ${json.artistWikidata_URL}
-*city:* ${json.city}
-*classification:* ${json.classification}
-*constituents.constituentID:* ${json.constituents.constituentID}
-*constituents.constituentULAN_URL:* ${json.constituents.constituentULAN_URL}
-*constituents.constituentWikidata_URL:* ${json.constituents.constituentWikidata_URL}
-*constituents.gender:* ${json.constituents.gender}
-*constituents.name:* ${json.constituents.name}
-*constituents.role:* ${json.constituents.role}
-*country:* ${json.country}
-*county:* ${json.county}
-*creditLine:* ${json.creditLine}
-*culture:* ${json.culture}
-*department:* ${json.department}
-*dimensions:* ${json.dimensions}
-*dynasty:* ${json.dynasty}
-*excavation:* ${json.excavation}
-*GalleryNumber:* ${json.GalleryNumber}
-*geographyType:* ${json.geographyType}
-*isHighlight:* ${json.isHighlight}
-*isPublicDomain:* ${json.isPublicDomain}
-*isTimelineWork:* ${json.isTimelineWork}
-*linkResource:* ${json.linkResource}
-*locale:* ${json.locale}
-*locus:* ${json.locus}
-*medium:* ${json.medium}
-*metadataDate:* ${json.metadataDate}
-*objectBeginDate:* ${json.objectBeginDate}
-*objectDate:* ${json.objectDate}
-*objectEndDate:* ${json.objectEndDate}
-*objectID:* ${json.objectID}
-*objectName:* ${json.objectName}
-*objectURL:* ${json.objectURL}
-*objectWikidata_URL:* ${json.objectWikidata_URL}
-*period:* ${json.period}
-*portfolio:* ${json.portfolio}
-*primaryImageSmall:* ${json.primaryImageSmall}
-*primaryImage:* ${json.primaryImage}
-*region:* ${json.region}
-*reign:* ${json.reign}
-*repository:* ${json.repository}
-*rightsAndReproduction:* ${json.rightsAndReproduction}
-*river:* ${json.river}
-*state:* ${json.state}
-*subregion:* ${json.subregion}
-*title:* ${json.title}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'q') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?q=' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'onview') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?isOnView=true&q=' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'aoc') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?artistOrCulture=true&q=' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'med') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Medium|Query`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?medium=' + one + '&q=' + two
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'img') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Hello`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=' + one
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'loc') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Location|Query`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?geoLocation=' + one + '&q=' + two
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
-        if (args[0] == 'time') {
-            if (!one) return m.reply(`Example: ${usedPrefix + command} ${args[0]} |Awal|Akhir|Query`)
-            let res = 'https://collectionapi.metmuseum.org/public/collection/v1/search?dateBegin=' + one + '&dateEnd=' + two + '&q=' + three
-            let gas = await fetch(res)
-            let json = await gas.json()
-            let caption = `*Result:*
-*Total:* ${json.total}
-*ID:* ${Array.from(json.objectIDs)}
-`
-
-            await conn.sendFile(m.chat, imgr + command, '', caption, m)
-        }
+  if (command === 'museum') {
+    if (!args[0]) {
+      const caption = `*MASUKKAN TEKS:*\nContoh:\n${usedPrefix + command} q |Contoh\n\n*List:*\n${htjava} high\n${htjava} id\n${htjava} q\n${htjava} onview\n${htjava} aoc\n${htjava} med\n${htjava} img\n${htjava} loc\n${htjava} time\n`
+      return conn.sendFile(m.chat, imgr + command, '', caption, m)
     }
 
+    const museumMethods = {
+      high: (query) => `${baseURLMuseum}/search?isHighlight=true&q=${query}`,
+      id: (id) => `${baseURLMuseum}/objects/${id}`,
+      q: (query) => `${baseURLMuseum}/search?q=${query}`,
+      onview: (query) => `${baseURLMuseum}/search?isOnView=true&q=${query}`,
+      aoc: (query) => `${baseURLMuseum}/search?artistOrCulture=true&q=${query}`,
+      med: (medium, query) => `${baseURLMuseum}/search?medium=${medium}&q=${query}`,
+      img: (query) => `${baseURLMuseum}/search?hasImages=true&q=${query}`,
+      loc: (location, query) => `${baseURLMuseum}/search?geoLocation=${location}&q=${query}`,
+      time: (start, end, query) => `${baseURLMuseum}/search?dateBegin=${start}&dateEnd=${end}&q=${query}`,
+    }
+
+    const museumMethod = museumMethods[args[0]]
+    if (!museumMethod) return m.reply(`Example: ${usedPrefix + command} ${Object.keys(museumMethods).join('|')}`)
+
+    try {
+      const res = await fetch(museumMethod(...args.slice(1)))
+      const data = await res.json()
+      const ids = Array.from(data.objectIDs)
+      const caption = `*Result:*\n*Total:* ${data.total}\n*ID:* ${ids.join(', ')}`
+      await conn.sendFile(m.chat, imgr + command, '', caption, m)
+    } catch (err) {
+      m.reply(`Error: ${err.message}`)
+    }
+  }
 }
+
 handler.command = handler.help = ['cts', 'museum']
 handler.tags = ['internet']
 
