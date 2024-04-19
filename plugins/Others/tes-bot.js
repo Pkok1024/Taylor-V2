@@ -17,29 +17,13 @@ const handler = async (m, {
         const end = Date.now();
         const responseTime = (end - start) / 1000;
 
-        const thumbnail = await conn.getFile("https://cdn-icons-png.flaticon.com/128/1533/1533913.png");
+        const thumbnail = await conn.getFile("https://cdn-icons-png.flaticon.com/128/1533/1533913.png").catch(error => console.error("Error in getting thumbnail:", error));
 
-        const osInfo = `🖥️ *OS*: ${os.type()} ${os.release()}\n💻 *CPU*: ${os.cpus()[0].model}\n🧠 *Memory*: ${format(os.totalmem())}`;
-        const responseMessage = `⏰ *Response Time*: ${responseTime.toFixed(2)}s\n\n${osInfo}`;
+        const osType = os.type();
+        const osRelease = os.release();
+        const osCPU = os.cpus()[0].model;
+        const osMemory = os.totalmem();
 
-        await conn.sendMessage(m.chat, {
-            text: responseMessage,
-            contextInfo: {
-                externalAdReply: {
-                    title: "🤖 Bot is active",
-                    thumbnail: thumbnail.data,
-                },
-                mentionedJid: [m.sender],
-            },
-        }, {
-            quoted: m
-        });
-
-    } catch (error) {
-        console.error("Error in handler:", error);
-    }
-};
-
-handler.customPrefix = /^([Tt]es[st]?)$/i;
-handler.command = new RegExp;
-export default handler;
+        if (osType && osRelease && osCPU && osMemory) {
+            const osInfo = `🖥️ *OS*: ${osType} ${osRelease}\n💻 *CPU*: ${osCPU}\n🧠 *Memory*: ${format(osMemory)}`;
+            const responseMessage = `⏰ *Response Time*:
