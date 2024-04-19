@@ -4,11 +4,19 @@ import {
 
 let timeout = 120000
 let poin = 4999
-let handler = async (m, {
-    conn,
-    command,
-    usedPrefix
-}) => {
+
+const buttons = [
+    ['Hint', '/hcak'],
+    ['Nyerah', 'menyerah']
+]
+
+const buttonMessage = {
+    text: 'Pilih untuk melanjutkan',
+    buttons: buttons,
+    footer: 'Powered by @bochilteam'
+}
+
+const startCaklontong = async (m, conn, usedPrefix) => {
     let imgr = flaaa.getRandom()
 
     conn.caklontong = conn.caklontong ? conn.caklontong : {}
@@ -26,21 +34,16 @@ Ketik ${usedPrefix}hcak untuk bantuan
 Bonus: ${poin} XP
     `.trim()
     conn.caklontong[id] = [
-        await conn.sendFile(m.chat, imgr + command, '', caption, m),
+        await conn.sendFile(m.chat, imgr + command, '', caption, m, {
+            buttons: buttons,
+            headerType: 4
+        }),
         json, poin,
         setTimeout(() => {
-            if (conn.caklontong[id]) conn.reply(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*`, conn.caklontong[id][0])
-            delete conn.caklontong[id]
+            if (conn.caklontong[id]) {
+                conn.reply(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*`, conn.caklontong[id][0])
+                delete conn.caklontong[id]
+            }
         }, timeout)
     ]
-}
-handler.help = ['caklontong']
-handler.tags = ['game']
-handler.command = /^caklontong/i
 
-export default handler
-
-const buttons = [
-    ['Hint', '/hcak'],
-    ['Nyerah', 'menyerah']
-]
