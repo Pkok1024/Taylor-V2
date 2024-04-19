@@ -1,44 +1,27 @@
+const DURABILITY_THRESHOLD = 1;
+const REPAIR_AMOUNT = 30;
+
 export function before(m) {
-    let user = global.db.data.users[m.sender]
+  const user = global.db.data.users[m.sender];
 
-    //Health
-    if (user.health > 100) {
-        user.health = 100;
-    }
-    if (user.health < 0) {
-        user.health = 0;
-    }
+  const durabilityProperties = {
+    sword: { durabilityKey: 'sworddurability', baseItemKey: 'sword' },
+    pickaxe: { durabilityKey: 'pickaxedurability', baseItemKey: 'pickaxe' },
+    armor: { durabilityKey: 'armordurability', baseItemKey: 'armor' },
+  };
 
-    //Sword                            
-    if (user.sword > 0) {
-        if (user.sworddurability < 1) {
-            user.sworddurability = 30
-            user.sword -= 1
-        }
+  for (const [property, { durabilityKey, baseItemKey }] of Object.entries(durabilityProperties)) {
+    if (user[property] > 0) {
+      if (user[durabilityKey] < DURABILITY_THRESHOLD) {
+        user[durabilityKey] = REPAIR_AMOUNT;
+        user[baseItemKey] -= 1;
+      }
     }
-    if (user.sword == 0) {
-        user.sworddurability = 0
+    if (user[baseItemKey] === 0) {
+      user[durabilityKey] = 0;
     }
+  }
 
-    //pickaxe
-    if (user.pickaxe > 0) {
-        if (user.pickaxedurability < 1) {
-            user.pickaxedurability = 30
-            user.pickaxe -= 1
-        }
-    }
-    if (user.pickaxe == 0) {
-        user.pickaxedurability = 0
-    }
-
-    //armor
-    if (user.armor > 0) {
-        if (user.armordurability < 1) {
-            user.armordurability = 30
-            user.armor -= 1
-        }
-    }
-    if (user.armor == 0) {
-        user.armordurability = 0
-    }
+  // Health constraints
+  user.health = Math.max(0, Math.min(user.health, 100));
 }
