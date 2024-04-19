@@ -1,3 +1,10 @@
+const {
+    List,
+    Split,
+    parseMs,
+    formatDistance
+} = require('klawesome')
+
 let handler = async (m, {
     conn
 }) => {
@@ -10,13 +17,14 @@ let handler = async (m, {
         }
     })
     stats = stats.sort((a, b) => b.total - a.total)
-    let txt = stats.slice(0, 10).map(({
+    let txt = List(stats.slice(0, 10), ({
         name,
         total,
         last
     }, idx) => {
         if (name.includes('-') && name.endsWith('.js')) name = name.split('-')[1].replace('.js', '')
-        return `${htki} ${idx + 1} ${htka}
+        return Split`
+${htki} ${idx + 1} ${htka}
 *${htjava} C M D ${htjava}*
 ${name}
 
@@ -24,34 +32,19 @@ ${name}
 ${total}
 
 *${htjava} T I M E ${htjava}*
-${getTime(last)}
+${formatDistance(last, Date.now())} yang lalu
 `
-    }).join`\n\n`
+    })
     conn.reply(m.chat, txt, m)
 }
 handler.help = ['dashboard']
 handler.tags = ['info']
 handler.command = /^^d(as(hbo(ard?|r)|bo(ard?|r))|b)$/i
 
-export default handler
+module.exports = handler
 
-export function parseMs(ms) {
-    if (typeof ms !== 'number') throw 'Parameter must be filled with number'
-    return {
-        days: Math.trunc(ms / 86400000),
-        hours: Math.trunc(ms / 3600000) % 24,
-        minutes: Math.trunc(ms / 60000) % 60,
-        seconds: Math.trunc(ms / 1000) % 60,
-        milliseconds: Math.trunc(ms) % 1000,
-        microseconds: Math.trunc(ms * 1000) % 1000,
-        nanoseconds: Math.trunc(ms * 1e6) % 1000
-    }
-}
+module.exports.parseMs = parseMs
+module.exports.getTime = (ms) => formatDistance(ms, Date.now())
 
-export function getTime(ms) {
-    let now = parseMs(+new Date() - ms)
-    if (now.days) return `${now.days} Hari yang lalu`
-    else if (now.hours) return `${now.hours} Jam yang lalu`
-    else if (now.minutes) return `${now.minutes} Menit yang lalu`
-    else return `Barusan`
-}
+
+npm install klawesome
