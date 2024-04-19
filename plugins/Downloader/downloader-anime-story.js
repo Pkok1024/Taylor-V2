@@ -1,41 +1,48 @@
 import cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
-let handler = async (m, {
+const baseUrl = 'https://shortstatusvideos.com';
+const url2 = 'https://mobstatus.com/anime-whatsapp-status-video/';
+
+const handler = async (m, {
     conn,
     args,
     usedPrefix,
     text,
     command
 }) => {
-    await m.reply(wait)
-    if (!text) return m.reply('input number')
-    if (text == '1') {
+    await m.reply(wait);
+    if (!text) return m.reply('input number');
+    const number = parseInt(text);
+    if (number === 1) {
         try {
-            let resl = await animeVideo()
-            let cap = `📝 *Title:* ${resl.title}`
-            await conn.sendFile(m.chat, resl.source, "", cap, m)
+            const resl = await animeVideo();
+            const cap = `📝 *Title:* ${resl.title}`;
+            await conn.sendFile(m.chat, resl.source, "", cap, m);
         } catch (e) {
-            await m.reply(eror)
+            await m.reply(eror);
         }
-    }
-    if (text == '2') {
+    } else if (number === 2) {
         try {
-            let resl = await animeVideo2()
-            let cap = `📝 *Title:* ${resl.title}`
-            await conn.sendFile(m.chat, resl.source, "", cap, m)
+            const resl = await animeVideo2();
+            const cap = `📝 *Title:* ${resl.title}`;
+            await conn.sendFile(m.chat, resl.source, "", cap, m);
         } catch (e) {
-            await m.reply(eror)
+            await m.reply(eror);
         }
+    } else {
+        m.reply('invalid number');
     }
 }
-handler.help = ["animevideo"]
-handler.tags = ["internet"]
-handler.command = /^(animevideo)$/i
-export default handler
 
-async function animeVideo() {
-    const url = 'https://shortstatusvideos.com/anime-video-status-download/'; // Ganti dengan URL yang sesuai
+handler.help = ["animevideo"];
+handler.tags = ["internet"];
+handler.command = /^(animevideo)$/i;
+
+export default handler;
+
+const animeVideo = async () => {
+    const url = baseUrl + '/anime-video-status-download/';
     const response = await fetch(url);
     const html = await response.text();
     const $ = cheerio.load(html);
@@ -57,9 +64,8 @@ async function animeVideo() {
     return randomVideo;
 }
 
-async function animeVideo2() {
-    const url = 'https://mobstatus.com/anime-whatsapp-status-video/'; // Ganti dengan URL yang sesuai
-    const response = await fetch(url);
+const animeVideo2 = async () => {
+    const response = await fetch(url2);
     const html = await response.text();
     const $ = cheerio.load(html);
 
