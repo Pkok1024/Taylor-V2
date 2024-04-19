@@ -8,7 +8,7 @@ let handler = async (m, {
     command,
     args
 }) => {
-    let query = "input text\nEx. .comicvine hello world\n<command> <tex>"
+    let query = "input text\nEx. .comicvine hello world\n<command> <text>"
     let text
     if (args.length >= 1) {
         text = args.slice(0).join(" ")
@@ -16,10 +16,14 @@ let handler = async (m, {
         text = m.quoted.text
     } else throw query
 
+    if (typeof text !== 'string') throw `Comicvine query must be a string.`
+
     try {
         m.reply(wait)
         let res = await ComicvineSearch(text)
-        let list = res.results.map((item, index) => `*${htki} SEARCH ${htka}*
+        if (!res.results.length) throw `No results found for query: ${text}`
+
+        let list = res.results.slice(0, 10).map((item, index) => `*${htki} SEARCH ${htka}*
 
 *ID:* ${item.id}
 *Name:* ${item.name}
@@ -28,17 +32,21 @@ let handler = async (m, {
 `).join("\n")
 
         let res1 = await ComicvineCharacters()
-        let list1 = res1.results.map((item, index) => `*${htki} CHARACTER ${htka}*
+        if (!res1.results.length) throw `No characters found.`
+
+        let list1 = res1.results.slice(0, 10).map((item, index) => `*${htki} CHARACTER ${htka}*
 
 *ID:* ${item.id}
 *Name:* ${item.name}
 *Deck:* ${item.deck}
-*Alias:* ${item.aliases}
+*Alias:* ${item.aliases.join(', ')}
 
 `).join("\n")
 
         let res2 = await ComicvineVideos()
-        let list2 = res2.results.map((item, index) => `*${htki} VIDEOS ${htka}*
+        if (!res2.results.length) throw `No videos found.`
+
+        let list2 = res2.results.slice(0, 10).map((item, index) => `*${htki} VIDEOS ${htka}*
 
 *ID:* ${item.id}
 *GUID:* ${item.guid}
@@ -50,7 +58,7 @@ let handler = async (m, {
 
         conn.sendFile(m.chat, res.results[0].image.original_url, "result", "\n" + list + "\n" + list1 + "\n" + list2, m)
     } catch (e) {
-        throw eror
+        throw e.message
     }
 }
 handler.help = ["comicvine"]
@@ -59,19 +67,4 @@ handler.command = /^(comicvine)$/i
 export default handler
 
 async function ComicvineSearch(query) {
-    const response = await fetch("https://www.comicvine.com/api/search?format=json&field_list=name,id,deck,image&api_key=d800216c205879548fdc491e0a260ff402633c00&query=" + query);
-    const data = await response.json();
-    return data;
-}
-
-async function ComicvineCharacters() {
-    const response = await fetch("https://www.comicvine.com/api/characters?format=json&api_key=d800216c205879548fdc491e0a260ff402633c00");
-    const data = await response.json();
-    return data;
-}
-
-async function ComicvineVideos() {
-    const response = await fetch("https://www.comicvine.com/api/videos?format=json&api_key=d800216c205879548fdc491e0a260ff402633c00");
-    const data = await response.json();
-    return data;
-}
+    const response = await fetch("https://www.comicvine.com/api/search?format=json&field_list=name,id,deck,image&api_key=d80
