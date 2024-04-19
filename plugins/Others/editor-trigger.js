@@ -1,60 +1,82 @@
-import uploadImage from '../../lib/uploadImage.js'
+import uploadImage from '../../lib/uploadImage.js';
 import {
     Sticker
-} from 'wa-sticker-formatter'
+} from 'wa-sticker-formatter';
 
-let handler = async (m, {
+const createSticker = async (img, url, authorName, quality) => {
+    const stickerMetadata = {
+        type: 'full',
+        author: authorName,
+        quality,
+    };
+    return (new Sticker(img || url, stickerMetadata)).toBuffer();
+}
+
+const handler = async (m, {
     conn,
     args,
     usedPrefix,
     command
 }) => {
-    let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender
-    let name = await conn.getName(who)
-    let q = m.quoted ? m.quoted : m
-    let mime = (q.msg || q).mimetype || q.mediaType || ''
+    const who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender;
+    const name = await conn.getName(who);
+    const q = m.quoted ? m.quoted : m;
+    const mime = q.msg?.mimetype || q.mediaType || '';
 
     if (/image/g.test(mime) && !/webp/g.test(mime)) {
-        let img = await q.download?.()
-        let out = await uploadImage(img)
-        m.reply("Tunggu sebentar...")
-
+        let img;
         try {
-            const some = global.API('https://some-random-api.com', '/canvas/triggered', {
-                avatar: out
-            })
-            if (some) {
-                const stikersome = await createSticker(false, some, name, 60)
-                conn.sendMessage(m.chat, stikersome, 'stickerMessage', {
-                    quoted: m
-                })
+            img = await q.download();
+        } catch (e) {
+            m.reply('Gagal mendownload gambar');
+            return;
+        }
+
+        let uploadResult;
+        try {
+            uploadResult = await uploadImage(img);
+        } catch (e) {
+            m.reply('Gagal mengunggah gambar');
+            return;
+        }
+
+        m.reply('Tunggu sebentar...');
+
+        let sticker;
+        try {
+            const someResponse = await global.API('https://some-random-api.com', '/canvas/triggered', {
+                avatar: uploadResult,
+            });
+            if (someResponse.status) {
+                sticker = await createSticker(false, someResponse.result, name, 60);
             } else {
-                const dham = "https://api.dhamzxploit.my.id/api/canvas/trigger?url=" + out
-                const stikerdham = await createSticker(false, dham, name, 60)
-                conn.sendMessage(m.chat, stikerdham, 'stickerMessage', {
-                    quoted: m
-                })
+                const dhamResponse = await global.API('https://api.dhamzxploit.my.id/api/canvas/trigger', {
+                    url: uploadResult,
+                });
+                if (dhamResponse.status) {
+                    sticker = await createSticker(false, dhamResponse.result, name, 60);
+                } else {
+                    m.reply('Gagal membuat stiker triggered');
+                    return;
+                }
             }
         } catch (error) {
-            throw new Error("Gagal membuat stiker triggered");
+            m.reply('Terjadi kesalahan saat membuat stiker triggered');
+            return;
         }
+
+        conn.sendMessage(m.chat, {
+            sticker: {
+                url: sticker,
+            },
+        }, 'stickerMessage', {
+            quoted: m,
+        });
     } else {
-        m.reply(`Kirim gambar dengan caption *${usedPrefix + command}* atau tag gambar yang sudah dikirim`);
+        m.reply(`Kirim gambar dengan caption \`${usedPrefix + command}\` atau tag gambar yang sudah dikirim`);
     }
 };
 
 handler.menu = ['trigger'];
 handler.tags = ['search'];
-handler.command = /^(trigger(ed)?)$/i;
-handler.limit = true;
-
-export default handler;
-
-async function createSticker(img, url, authorName, quality) {
-    let stickerMetadata = {
-        type: 'full',
-        author: authorName,
-        quality
-    };
-    return (new Sticker(img ? img : url, stickerMetadata)).toBuffer();
-}
+handler.command = /^(trigger
