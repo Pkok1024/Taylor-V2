@@ -1,7 +1,7 @@
-import axios from "axios"
+import axios from "axios";
 import {
-    download
-} from "aptoide-scraper"
+    Mimetype
+} from "@adiwajshing/baileys";
 
 let handler = async (m, {
     conn,
@@ -9,30 +9,36 @@ let handler = async (m, {
     command,
     usedPrefix
 }) => {
-    let regex = /^[a-z]\w*(\.[a-z]\w*)+$/i
-    if (!regex.test(text)) throw "Input package name"
-    try {
-        let aptodl = await download(text)
-        await m.reply(wait)
-        let {
-            name,
-            lastup,
-            size,
-            icon,
-            dllink
-        } = aptodl
-        let cap = "*Name:* " + name + "\n" + "*Lastup:* " + lastup + "\n" + "*Size:* " + size + "\n\n" + wait
-        await conn.sendFile(m.chat, icon, "", cap, m)
-        await conn.sendFile(m.chat, dllink, name, null, m, true, {
-            quoted: m,
-            mimetype: "application/vnd.android.package-archive"
-        })
-    } catch (e) {
-        await m.reply(eror)
-    }
-}
-handler.help = ["aptoidedown"]
-handler.tags = ["tools"]
-handler.command = /^ap(ptoided(own|l)|toided(own|l))$/i
+    let packageName = text.toLowerCase();
+    let regex = /^[a-z]\w*(\.[a-z]\w*)+$/;
 
-export default handler
+    if (!regex.test(packageName)) {
+        return conn.sendMessage(m.chat, {
+            text: `Input package name in the format: com.example.app\n\nExample: ${usedPrefix}aptoidedl com.example.app`,
+            footer: wm
+        }, {
+            quoted: m
+        });
+    }
+
+    try {
+        let aptoResponse = await axios.get(`https://m.aptoide.com/api/7/app/market/browse?name=${packageName}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36'
+            }
+        });
+
+        if (aptoResponse.data.length === 0) {
+            return conn.sendMessage(m.chat, {
+                text: 'No package found with the given name.',
+                footer: wm
+            }, {
+                quoted: m
+            });
+        }
+
+        let {
+            apk_file,
+            icon,
+            title,
+            last_updated,
