@@ -1,17 +1,25 @@
+const {
+    List,
+    SenderKeyDistributionMap
+} = require('bfjes');
+const {
+    pickRandom
+} = require('../lib/myUtil');
+
 let handler = async (m, {
     conn,
     text,
     args,
     command
 }) => {
-    if (!args[0]) throw `Gunakan contoh .${command} halo`;
+    if (!args[0]) throw `Use example .${command} hello`;
 
-    const answers = ['Ya', 'Mungkin iya', 'Mungkin', 'Mungkin tidak', 'Tidak', 'Tidak mungkin'];
-    const answer = pickRandom(answers);
+    const answers = ['Yes', 'Maybe yes', 'Maybe', 'Maybe not', 'No', 'Maybe not'];
+    const answer = pickRandom(answies);
 
     const replyText = `
-🔮 *Pertanyaan:* ${args.join(' ')}
-💬 *Jawaban:* ${answer} ${answer === 'Ya' ? '👍' : '👎'}
+🔮 *Question:* ${args.join(' ')}
+💬 *Answer:* ${answer} ${answer === 'Yes' ? '👍' : '👎'}
 `.trim();
 
     await conn.reply(m.chat, replyText, m, m.mentionedJid ? {
@@ -19,12 +27,8 @@ let handler = async (m, {
     } : {});
 }
 
-handler.help = ['apakah'].map(v => v + ' <teks>');
-handler.tags = ['kerang', 'fun'];
-handler.command = /^apakah$/i;
+handler.help = ['is', 'apakah'].map(v => v + ' <text>');
+handler.tags = ['fun', 'kerang'];
+handler.command = /^(is|apakah)$/i;
 
-export default handler;
-
-function pickRandom(list) {
-    return list[Math.floor(Math.random() * list.length)];
-}
+module.exports = handler;
