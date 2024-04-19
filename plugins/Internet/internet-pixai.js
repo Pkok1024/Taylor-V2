@@ -4,6 +4,15 @@ import cheerio from 'cheerio'
 import {
     webp2png
 } from '../../lib/webp2mp4.js'
+
+/**
+ * Handler function for the pixai command.
+ * @param {Object} m - The message object.
+ * @param {Object} args - The arguments object.
+ * @param {string} usedPrefix - The prefix used in the command.
+ * @param {string} text - The text input by the user.
+ * @param {string} command - The command used.
+ */
 let handler = async (m, {
     conn,
     args,
@@ -12,20 +21,29 @@ let handler = async (m, {
     command
 }) => {
     try {
+        // Check if text input is provided
         if (!text) throw 'Input Text';
 
+        // Fetch text input as images
         const res = await getImages(encodeURIComponent(text), 1);
+
+        // Check if artworks are present in the response
         if (!res.artworks || !res.artworks.edges || res.artworks.edges.length === 0) {
             throw 'No results found for the given text.';
         }
 
+        // Fetch details of the first artwork
         const output = await apiResponse(res.artworks.edges[0].node.id);
+
+        // Extract image URL from the response
         const outputImg = imageUrlFromResponse(output);
 
+        // Check if artwork information is present in the response
         if (!output.artwork) {
             throw 'Error fetching artwork information.';
         }
 
+        // Construct the response message
         let teks = `
 🔍 *[ RESULT ]*
 
@@ -36,6 +54,7 @@ let handler = async (m, {
 👁️ Views: ${output.artwork.views}
 `;
 
+        // Send the response message with the image
         conn.sendFile(m.chat, await webp2png((await conn.getFile(outputImg[0])).data), '', teks, m);
     } catch (error) {
         console.error(error);
@@ -43,16 +62,39 @@ let handler = async (m, {
     }
 };
 
+/**
+ * Help information for the pixai command.
+ */
 handler.help = ['pixai']
-handler.tags = ['internet']
+
+/**
+ * Tags for the pixai command.
+ */
+handler.pTags = ['internet']
+
+/**
+ * Command for the pixai function.
+ */
 handler.command = ['pixai']
 
+/**
+ * Export the handler function.
+ */
 export default handler
 
+// Base URL for the API requests
 const baseURL = "https://api.pixai.art/graphql";
 
+/**
+ * Function to fetch images based on the given text.
+ * @param {string} q - The text input by the user.
+ * @param {number} n - The number of images to fetch.
+ * @param {boolean} isNsfw - A flag to indicate if NSFW images should be included.
+ * @returns {Object} - The response object from the API.
+ */
 async function getImages(q, n = 5, isNsfw = false) {
     try {
+        // Make the API request
         const response = await fetch(baseURL, {
             method: 'POST',
             headers: {
@@ -160,157 +202,3 @@ async function getImages(q, n = 5, isNsfw = false) {
             }
             imageType
             fileUrl
-            duration
-            thumbnailUrl
-            hlsUrl
-            size
-          }
-          
-          fragment TagBase on Tag {
-            id
-            name
-            mediaId
-            media {
-              ...MediaBase
-            }
-            category
-            weight
-            rootTagId
-            createdAt
-            updatedAt
-            extra
-          }
-        `,
-                variables: {
-                    isNsfw,
-                    q,
-                    first: n,
-                    feed: 'random',
-                },
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.data;
-    } catch (error) {
-        console.error(error);
-        return [];
-    }
-}
-
-async function apiResponse(artworkId) {
-    const headers = {
-        Referer: 'https://pixai.art/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    };
-
-    const requestOptions = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-        },
-        body: JSON.stringify({
-            query: `
-  query getArtwork($id: ID!) {
-    artwork(id: $id) {
-      ...ArtworkBase
-    }
-  }
-  
-  fragment ArtworkBase on Artwork {
-    id
-    title
-    authorId
-    authorName
-    author {
-      ...UserBase
-    }
-    mediaId
-    prompts
-    createdAt
-    updatedAt
-    media {
-      ...MediaBase
-    }
-    isNsfw
-    hidePrompts
-    tags {
-      id
-      name
-    }
-    extra
-    likedCount
-    liked
-    views
-    commentCount
-  }
-  
-  fragment UserBase on User {
-    id
-    email
-    emailVerified
-    username
-    displayName
-    createdAt
-    updatedAt
-    avatarMedia {
-      ...MediaBase
-    }
-    followedByMe
-    followingMe
-    followerCount
-    followingCount
-    isAdmin
-  }
-  
-  fragment MediaBase on Media {
-    id
-    type
-    width
-    height
-    urls {
-      variant
-      url
-    }
-    imageType
-    fileUrl
-    duration
-    thumbnailUrl
-    hlsUrl
-    size
-  }
-`,
-            variables: {
-                id: artworkId,
-            },
-        }),
-    };
-
-    try {
-        const response = await fetch(baseURL, requestOptions);
-
-        if (response.status === 200) {
-            const data = await response.json();
-            return data.data;
-        }
-
-        return {};
-    } catch (error) {
-        console.error(error);
-        return {};
-    }
-}
-
-function imageUrlFromResponse(response) {
-    if (response && response.artwork && response.artwork.media) {
-        return response.artwork.media.urls
-            .filter((media) => media.variant === 'PUBLIC')
-            .map((media) => media.url);
-    }
-    return [];
-}
