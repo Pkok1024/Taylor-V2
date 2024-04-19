@@ -1,49 +1,57 @@
-import fetch from "node-fetch"
+import fetch from "node-fetch";
 
-let handler = async (m, {
+// Handler function to process incoming messages
+const handler = async (m, {
     conn,
     isOwner,
     usedPrefix,
     command,
     args
 }) => {
-    let query = "input text\nEx. .diffusion hello world\n<command> <tex>"
-    let text
+    // Help text for the command
+    const query = "input text\nEx. .diffusion hello world\n<command> <text>";
+    
+    // The text to be processed
+    let text;
     if (args.length >= 1) {
-        text = args.slice(0).join(" ")
+        // If arguments are provided, join them into a single string
+        text = args.slice(0).join(" ");
     } else if (m.quoted && m.quoted.text) {
-        text = m.quoted.text
-    } else throw query
-    try {
-        m.reply(wait)
-        await Draw(text).then((img) => {
-            conn.sendFile(m.chat, img, text, "*[ Result ]*\n" + text, m)
-        })
-    } catch (e) {
-        throw eror
+        // If a message is quoted, use its text as input
+        text = m.quoted.text;
+    } else {
+        // If no input is provided, throw an error with the help text
+        throw query;
     }
-
+    
+    try {
+        // Reply to the message with a loading indicator
+        m.reply(wait);
+        
+        // Call the Draw function to generate an image from the input text
+        await Draw(text).then((img) => {
+            // Send the generated image to the chat
+            conn.sendFile(m.chat, img, text, "*[ Result ]*\n" + text, m);
+        });
+    } catch (e) {
+        // If an error occurs, throw an error message
+        throw eror;
+    }
 }
-handler.help = ["diffusion"]
-handler.tags = ["misc"]
-handler.command = /^(diffusion)$/i
-export default handler
+
+// Configuration for the handler function
+handler.help = ["diffusion"];
+handler.tags = ["misc"];
+handler.command = /^(diffusion)$/i;
+
+// Export the handler function as the default export
+export default handler;
 
 
-async function Draw(propmt) {
+// Function to generate an image from a given prompt using the Stable Diffusion model
+const Draw = async (propmt) => {
+    // Fetch the model from the Hugging Face Inference API
     const Blobs = await fetch(
-            "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5", {
-                headers: {
-                    Authorization: "Bearer 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"
-                },
-                method: "POST",
-                body: JSON.stringify({
-                    inputs: propmt
-                }),
-            }
-        )
-        .then((res) => res.blob())
-    const arrayBuffer = await Blobs.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return buffer
-}
+        "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5", {
+            headers: {
+                Authorization:
