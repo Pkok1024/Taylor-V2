@@ -1,7 +1,8 @@
 import cheerio from 'cheerio';
 import axios from 'axios';
 
-let handler = async (m, {
+// The main function that handles the command
+const handler = async (m, {
     conn,
     args,
     usedPrefix,
@@ -9,22 +10,31 @@ let handler = async (m, {
     command
 }) => {
 
-    let lister = [
+    // List of available features
+    const lister = [
         "search",
         "gif",
         "vid"
     ]
 
-    let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
-    if (!lister.includes(feature)) return m.reply("*Example:*\n.pornhub search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+    // Split the input text into feature, inputs, and other arguments
+    const [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
 
+    // Check if the feature is valid
+    if (!lister.includes(feature)) {
+        // Return an error message with an example of usage
+        return m.reply("*Example:*\n.pornhub search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+    }
+
+    // Process the feature if it's valid
     if (lister.includes(feature)) {
-
         if (feature == "search") {
+            // Call the searchVideo function with the inputs
             if (!inputs) return m.reply("Input query")
             try {
-                let res = await searchVideo(inputs)
-                let teks = res.map((item, index) => {
+                const res = await searchVideo(inputs)
+                // Format and send the search results
+                const teks = res.map((item, index) => {
                     return `*[ RESULT ${index + 1} ]*
 *Link:* ${item.link}
 *Title:* ${item.title}
@@ -35,14 +45,17 @@ let handler = async (m, {
                 }).filter(v => v).join("\n\n________________________\n\n")
                 await m.reply(teks)
             } catch (e) {
+                // Send an error message if there's an error
                 await m.reply(eror)
             }
         }
         if (feature == "gif") {
+            // Call the searchGif function with the inputs
             if (!inputs) return m.reply("Input query")
             try {
-                let res = await searchGif(inputs)
-                let teks = res.map((item, index) => {
+                const res = await searchGif(inputs)
+                // Format and send the search results
+                const teks = res.map((item, index) => {
                     return `*[ RESULT ${index + 1} ]*
 *Title:* ${item.title}
 *Url:* ${item.url}
@@ -51,14 +64,17 @@ let handler = async (m, {
                 }).filter(v => v).join("\n\n________________________\n\n")
                 await m.reply(teks)
             } catch (e) {
+                // Send an error message if there's an error
                 await m.reply(eror)
             }
         }
         if (feature == "vid") {
+            // Call the getVideo function with the inputs
             if (!inputs) return m.reply("Input query")
             try {
-                let res = await getVideo(inputs)
-                let teks = res.mediaDefinitions.map((item, index) => {
+                const res = await getVideo(inputs)
+                // Format and send the search results
+                const teks = res.mediaDefinitions.map((item, index) => {
                     return `*[ RESULT ${index + 1} ]*
 *format:* ${item.format}
 *quality:* ${item.quality}
@@ -67,25 +83,33 @@ let handler = async (m, {
                 }).filter(v => v).join("\n\n________________________\n\n")
                 await m.reply(teks)
             } catch (e) {
+                // Send an error message if there's an error
                 await m.reply(eror)
             }
         }
-
     }
 }
+
+// Add command information
 handler.help = ["pornhub"]
 handler.tags = ["internet"]
 handler.command = /^(pornhub)$/i
+
+// Export the handler
 export default handler
 
 /* New Line */
+
+// Function to search for videos on Pornhub
 async function searchVideo(query) {
     const url = `https://www.pornhub.com/video/search?search=${query}`;
 
     try {
+        // Fetch the HTML content of the search results page
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
+        // Extract video information from the HTML content
         return $('li[data-video-segment]').map((i, el) => {
             const $el = $(el);
 
@@ -103,10 +127,14 @@ async function searchVideo(query) {
     }
 }
 
+// Function to get video details from a Pornhub video page
 async function getVideo(url) {
     try {
+        // Fetch the HTML content of the video page
         const response = await axios.get(url);
         const html = response.data;
+
+        // Extract video metadata from the HTML content
         const getSubstring = (startPattern, endPattern) => {
             const startIndex = html.search(startPattern);
             return html.substring(startIndex, html.indexOf(endPattern, startIndex));
@@ -119,21 +147,8 @@ async function getVideo(url) {
     }
 }
 
+// Function to search for GIFs on Pornhub
 async function searchGif(query) {
     const url = `http://www.pornhub.com/gifs/search?search=${query}`;
     const response = await fetch(url);
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    const gifs = $('ul.gifs.gifLink li');
-
-    return gifs.map((i, gif) => {
-        const data = $(gif).find('a');
-
-        return {
-            title: data.find('span').text(),
-            url: 'http://dl.phncdn.com#id#.gif'.replace('#id#', data.attr('href')),
-            webm: data.find('video').attr('data-webm'),
-        };
-    }).get();
-}
+    const html = await response.text
