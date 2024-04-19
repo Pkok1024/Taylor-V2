@@ -1,5 +1,6 @@
-import fetch from "node-fetch"
-let handler = async (m, {
+import fetch from "node-fetch" // Importing the 'node-fetch' module to make HTTP requests
+
+const handler = async (m, {
     command,
     usedPrefix,
     conn,
@@ -7,7 +8,7 @@ let handler = async (m, {
     args
 }) => {
 
-    let lister = [
+    const lister = [ // List of available features
         "search",
         "video",
         "slugeps",
@@ -15,17 +16,24 @@ let handler = async (m, {
         "getvid"
     ]
 
-    let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
-    if (!lister.includes(feature)) return m.reply("*Example:*\n.animeiat search|naruto\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join('\n'))
+    // Destructuring the 'text' argument into feature, inputs, inputs_, inputs__, inputs___
+    const [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
 
+    // Checking if the feature is valid
+    if (!lister.includes(feature)) {
+        return m.reply("*Example:*\n.animeiat search|naruto\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join('\n'))
+    }
+
+    // Handling the feature requests
     if (lister.includes(feature)) {
 
+        // Handling the 'search' feature
         if (feature == "search") {
             if (!inputs) return m.reply("Input query anime")
             await m.reply(wait)
             try {
-                let outs = await searchAnime(inputs)
-                let teks = outs.map((anime, index) => {
+                const outs = await searchAnime(inputs) // Calling the 'searchAnime' function
+                const teks = outs.map((anime, index) => {
                     return `*[ ${index + 1} ]*
 *Judul:* ${anime.anime_name}
 *ID:* ${anime.id}
@@ -50,11 +58,12 @@ let handler = async (m, {
             }
         }
 
+        // Handling the 'video' feature
         if (feature == "video") {
             if (!inputs) return m.reply("Input query anime")
             await m.reply(wait)
             try {
-                let outs = await fetchAnime(inputs, inputs_)
+                const outs = await fetchAnime(inputs, inputs_) // Calling the 'fetchAnime' function
                 const teks = outs.map((anime, index) => {
                     return `*[ ${index + 1} ]*
 *Quality:* ${anime.quality}
@@ -68,11 +77,12 @@ let handler = async (m, {
             }
         }
 
+        // Handling the 'slugeps' feature
         if (feature == "slugeps") {
             if (!inputs) return m.reply("Input query anime")
             await m.reply(wait)
             try {
-                let outs = await slugEpisode(inputs)
+                const outs = await slugEpisode(inputs) // Calling the 'slugEpisode' function
                 const teks = outs.map((anime, index) => {
                     return `*[ ${index + 1} ]*
 *Judul:* ${anime.anime_name}
@@ -85,11 +95,12 @@ let handler = async (m, {
             }
         }
 
+        // Handling the 'slugvid' feature
         if (feature == "slugvid") {
             if (!inputs) return m.reply("Input query episode slug")
             await m.reply(wait)
             try {
-                let outs = await slugVideo(inputs, inputs_)
+                const outs = await slugVideo(inputs, inputs_) // Calling the 'slugVideo' function
                 const teks = `*Slug:* ${outs.slug}\n*Episode:* 1 sampai ${outs.total}`
                 await m.reply(teks)
             } catch (e) {
@@ -97,11 +108,12 @@ let handler = async (m, {
             }
         }
 
+        // Handling the 'getvid' feature
         if (feature == "getvid") {
             if (!inputs) return m.reply("Input query video slug")
             await m.reply(wait)
             try {
-                let outs = await getVideo(inputs)
+                const outs = await getVideo(inputs) // Calling the 'getVideo' function
                 const teks = outs.map((anime, index) => {
                     return `*[ ${index + 1} ]*
 *Quality:* ${anime.quality}
@@ -117,74 +129,16 @@ let handler = async (m, {
 
     }
 }
+
+// Adding metadata for the handler
 handler.help = ["animeiat type query"]
 handler.tags = ["internet"]
 handler.command = /^(animeiat)$/i
+
+// Exporting the handler
 export default handler
 
+// Function to search anime
 async function searchAnime(query) {
     try {
-        const response = await fetch(`https://api.animeiat.co/v1/anime?q=${query}`)
-        const data = await response.json()
-        return data.data
-    } catch (error) {
-        console.error('Terjadi kesalahan:', error)
-        return null
-    }
-}
-
-async function fetchAnime(query, episodes = 1) {
-    try {
-        const response = await fetch("https://api.animeiat.co/v1/anime?q=" + query)
-        const sear = await response.json()
-        const response1 = await fetch("https://api.animeiat.co/v1/episode/" + sear.data[0].slug + "-episode-" + episodes)
-        const data = await response1.json()
-        const slug = data.data.video.slug
-        const response2 = await fetch("https://api.animeiat.co/v1/video/" + slug)
-        const data2 = await response2.json()
-        const source = data2.data.sources
-        return source
-    } catch (error) {
-        console.error(error)
-        return null
-    }
-}
-
-async function slugEpisode(query) {
-    try {
-        const response = await fetch("https://api.animeiat.co/v1/anime?q=" + query)
-        const sear = await response.json()
-        return sear.data
-    } catch (error) {
-        console.error(error)
-        return null
-    }
-}
-
-async function slugVideo(query, episode = 1) {
-    try {
-        const response1 = await fetch("https://api.animeiat.co/v1/episode/" + query + "-episode-" + episode)
-        const data = await response1.json()
-        const slug = data.data.video.slug
-        const total = data.data.anime.total_episodes
-        return {
-            slug: slug,
-            total: total
-        }
-    } catch (error) {
-        console.error(error)
-        return null
-    }
-}
-
-async function getVideo(query) {
-    try {
-        const response2 = await fetch("https://api.animeiat.co/v1/video/" + query)
-        const data2 = await response2.json()
-        const source = data2.data.sources
-        return source
-    } catch (error) {
-        console.error(error)
-        return null
-    }
-}
+        const response = await fetch
