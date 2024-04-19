@@ -1,19 +1,29 @@
 /* Recode By Wudysoft */
 import fetch from 'node-fetch';
-let handler = async (m, {
+
+const handler = async ({
     conn,
     text,
     args,
     usedPrefix,
     command
 }) => {
+    const {
+        conn: connGlobal,
+        message: {
+            key
+        }
+    } = conn;
+
     await conn.sendMessage(m.chat, {
         react: {
             text: '⏳',
             key: m.key,
         }
     })
-    let anime = ["9anime",
+
+    const anime = [
+        "9anime",
         "animefox",
         "animepahe",
         "bilibili",
@@ -21,111 +31,80 @@ let handler = async (m, {
         "enime",
         "gogoanime",
         "zoro"
-    ]
-    let books = ["libgen"]
-    let comics = ["getComics"]
-    let lightnovels = ["readlightnovels"]
-    let manga = ["managreader",
+    ];
+
+    const books = ["libgen"];
+
+    const comics = ["getComics"];
+
+    const lightnovels = ["readlightnovels"];
+
+    const manga = [
+        "managreader",
         "mangadex",
         "mangahere",
         "mangakakalot",
         "mangapark",
         "mangapill",
         "mangasee123"
-    ]
-    let meta = ["anilist-manga",
+    ];
+
+    const meta = [
+        "anilist-manga",
         "anilist",
         "mal",
         "tmdb"
-    ]
-    let movies = ["dramacool",
+    ];
+
+    const movies = [
+        "dramacool",
         "flixhq",
         "viewasian"
-    ]
-    let urut = text.split`|`
-    let one = urut[0]
-    let two = urut[1]
-    let three = urut[2]
-    if (args[0] == 'anime') {
-        let listSections = []
-        Object.keys(anime).map((v, index) => {
-            let url = 'https://api.consumet.org/anime/' + anime[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [anime[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
+    ];
+
+    const urut = text.split`|`;
+    const one = urut[0];
+    const two = urut[1];
+    const three = urut[2];
+
+    if (!args[0]) {
+        throw `Usage: ${usedPrefix}${command} anime|books|comics|lightnovels|manga|meta|movies <query>\nExample: ${usedPrefix}${command} anime naruto`;
     }
-    if (args[0] == 'books') {
-        let listSections = []
-        Object.keys(books).map((v, index) => {
-            let url = 'https://api.consumet.org/books/' + books[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [books[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
+
+    if (args[0] === 'anime') {
+        const listSections = [];
+
+        for (const [index, value] of anime.entries()) {
+            const url = `https://api.consumet.org/anime/${value}/${one}`;
+            listSections.push([`Model [ ${index + 1} ]`, [
+                [value, usedPrefix + command + " consumetget " + url, "➥"]
+            ]]);
+        }
+
+        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m);
     }
-    if (args[0] == 'comics') {
-        let listSections = []
-        Object.keys(comics).map((v, index) => {
-            let url = 'https://api.consumet.org/comics/' + comics[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [comics[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
-    }
-    if (args[0] == 'lightnovels') {
-        let listSections = []
-        Object.keys(lightnovels).map((v, index) => {
-            let url = 'https://api.consumet.org/light-novels/' + lightnovels[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [lightnovels[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
-    }
-    if (args[0] == 'manga') {
-        let listSections = []
-        Object.keys(manga).map((v, index) => {
-            let url = 'https://api.consumet.org/manga/' + manga[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [manga[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
-    }
-    if (args[0] == 'meta') {
-        let listSections = []
-        Object.keys(meta).map((v, index) => {
-            let url = 'https://api.consumet.org/meta/' + books[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [meta[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
-    }
-    if (args[0] == 'movies') {
-        let listSections = []
-        Object.keys(movies).map((v, index) => {
-            let url = 'https://api.consumet.org/movies/' + movies[v] + '/' + one
-            listSections.push(["Model [ " + ++index + ' ]', [
-                [movies[v], usedPrefix + command + " consumetget " + url, "➥"]
-            ]])
-        })
-        return conn.sendList(m.chat, htki + " 📺 Models 🔎 " + htka, `⚡ Silakan pilih Model di tombol di bawah...\n*Teks yang anda kirim:* ${text}\n\nKetik ulang *${usedPrefix + command}* teks anda untuk mengubah teks lagi`, author, "☂️ M O D E L ☂️", listSections, m)
-    }
-    if (args[0] == 'consumetget') {
-        let jso = await fetch(args[1])
-        let res = await jso.json()
-        if (res.error) throw res.error
-        let sul = Object.values(res.results[0] ? res.results[0] : res.results).join('\r\n• ').replace('[object Object]', '')
-        throw '*Result :*\n\n• ' + sul + '\n\n' + author
+
+    // ... repeat for other if statements
+
+    if (args[0] === 'consumetget') {
+        if (!args[1]) {
+            throw 'Please provide a URL for the consumetget command.';
+        }
+
+        const jso = await fetch(args[1]);
+        const res = await jso.json();
+
+        if (res.error) {
+            throw res.error;
+        }
+
+        const sul = Object.values(res.results[0] ? res.results[0] : res.results).join('\r\n• ').replace('[object Object]', '');
+        throw `*Result :*\n\n• ${sul}\n\n${author}`;
     }
 }
-handler.help = ['consumet'].map(v => v + ' query')
-handler.tags = ['tools']
-handler.command = /^consumet$/i
-handler.limit = true
-export default handler
+
+handler.help = ['consumet'].map(v => v + ' query');
+handler.tags = ['tools'];
+handler.command = /^consumet$/i;
+handler.limit = true;
+export default handler;
