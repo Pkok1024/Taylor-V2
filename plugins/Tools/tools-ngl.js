@@ -1,34 +1,53 @@
 import axios from 'axios'
 
-let handler = async (m, {
-    conn,
-    text,
-    usedPrefix,
-    command
-}) => {
-    let [user, msg] = text.split`|`
-    if (!(user && msg)) throw `Ex: ${usedPrefix + command} username/ngl_link | message`
-    let link = /^(http|https):\/\/ngl.link/gi.test(user) ? user : /ngl.link/gi.test(user) ? `https://${user}` : `https://ngl.link/${user}`
-    let data = await cekUser(link)
-    if (!data) throw 'User not found/Invalid url'
-    await sendNgl(link, msg).then(() => m.reply(`Success send ngl to *"${user}"*\nMessage: *"${msg}"*`))
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text) throw `Usage: ${usedPrefix}${command} username/ngl_link | message`
+
+  const [user, msg] = text.split`|`
+  if (!user || !msg) throw `Usage: ${usedPrefix}${command} username/ngl_link | message`
+
+  const link = /^(http|https):\/\/ngl.link/gi.test(user)
+    ? user
+    : `https://ngl.link/${user}`
+
+  try {
+    const data = await cekUser(link)
+    if (!data) throw new Error('User not found or invalid URL')
+
+    await sendNgl(link, msg)
+    await m.reply(`Successfully sent ngl to "${user}"\nMessage: "${msg}"`)
+  } catch (err) {
+    m.reply(err.message)
+  }
 }
+
 handler.help = ['ngl']
 handler.tags = ['tools']
 handler.command = /^ngl$/i
 
-export default handler
-
 async function cekUser(url) {
-    return await axios(url).catch(_ => null)
+  try {
+    const res = await axios(url)
+    return res.data
+  } catch (err) {
+    return null
+  }
 }
 
 async function sendNgl(url, text) {
-    return await axios({
-        url,
-        method: 'post',
-        data: new URLSearchParams({
-            question: text
-        })
-    }).catch(console.log)
+  try {
+    const res = await axios({
+      url,
+      method: 'post',
+      data: new URLSearchParams({
+        question: text
+      })
+    })
+    return res.data
+  } catch (err) {
+    console.log(err)
+    return null
+  }
 }
+
+export default handler
