@@ -1,12 +1,12 @@
 import {
     generateWAMessageFromContent
-} from "@whiskeysockets/baileys"
-import cheerio from "cheerio"
-import fetch from "node-fetch"
+} from "@whiskeysockets/baileys" // Importing the generateWAMessageFromContent function from the baileys module
+import cheerio from "cheerio" // Importing the cheerio module for scraping HTML data
+import fetch from "node-fetch" // Importing the fetch function for making HTTP requests
 import {
     youtubedl,
     youtubedlv2
-} from "@bochilteam/scraper"
+} from "@bochilteam/scraper" // Importing the youtubedl and youtubedlv2 functions from the scraper module
 
 let handler = async (m, {
     conn,
@@ -16,21 +16,35 @@ let handler = async (m, {
     command
 }) => {
 
+    // Defining a list of available features
     let lister = [
         "search",
         "play"
     ]
 
+    // Splitting the input text into an array of strings using the "|" character as the separator
     let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
-    if (!lister.includes(feature)) return m.reply("*Example:*\n.lagu123 search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+
+    // Checking if the feature is included in the list of available features
+    if (!lister.includes(feature)) {
+        // If the feature is not included, returning an error message
+        return m.reply("*Example:*\n.lagu123 search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+    }
 
     if (lister.includes(feature)) {
 
         if (feature == "search") {
-            if (!inputs) return m.reply("Input query link\nExample: .lagu123 search|vpn")
+            // If the feature is "search", checking if the inputs are provided
+            if (!inputs) {
+                // If the inputs are not provided, returning an error message
+                return m.reply("Input query link\nExample: .lagu123 search|vpn")
+            }
+            // Replying with a loading message
             await m.reply(wait)
             try {
+                // Calling the searchLagu123 function with the inputs as the argument
                 let res = await searchLagu123(inputs)
+                // Creating a string of search results using the map function
                 let teks = res.map((item, index) => {
                     return `🔍 *[ RESULT ${index + 1} ]*
 
@@ -44,7 +58,9 @@ let handler = async (m, {
 `
                 }).filter(v => v).join("\n\n________________________\n\n")
 
+                // Fetching the thumbnail image using the conn.getFile function
                 let ytthumb = await (await conn.getFile(res[0].detailThumb)).data
+                // Creating a message object using the generateWAMessageFromContent function
                 let msg = await generateWAMessageFromContent(m.chat, {
                     extendedTextMessage: {
                         text: teks,
@@ -71,21 +87,33 @@ let handler = async (m, {
                 }, {
                     quoted: m
                 })
+                // Sending the message object using the conn.relayMessage function
                 await conn.relayMessage(m.chat, msg.message, {})
             } catch (e) {
+                // If there is an error, replying with an error message
                 await m.reply(eror)
             }
         }
 
         if (feature == "play") {
-            if (!inputs.match(/youtu/gi)) return m.reply("Input query link\nExample: .lagu123 play|link")
+            // If the feature is "play", checking if the inputs match the youtu regex pattern
+            if (!inputs.match(/youtu/gi)) {
+                // If the inputs do not match the pattern, returning an error message
+                return m.reply("Input query link\nExample: .lagu123 play|link")
+            }
+            // Replying with a loading message
             await m.reply(wait)
             try {
+                // Calling the youtubedlv2 function with the inputs as the argument
                 const yt = await youtubedlv2(inputs).catch(async _ => await youtubedl(inputs))
+                // Fetching the audio file using the download function
                 const link = await yt.audio["128kbps"].download()
+                // Defining some variables for the media file
                 let ytl = "https://youtube.com/watch?v="
                 let dls = "Downloading audio succes"
+                // Fetching the thumbnail image using the conn.getFile function
                 let ytthumb = await (await conn.getFile(yt.thumbnail)).data
+                // Creating a message object using the document object
                 let doc = {
                     audio: {
                         url: link
@@ -97,57 +125,4 @@ let handler = async (m, {
                             showAdAttribution: true,
                             mediaType: 2,
                             mediaUrl: ytl + yt.id,
-                            title: yt.title,
-                            body: dls,
-                            sourceUrl: ytl + yt.id,
-                            thumbnail: ytthumb
-                        }
-                    }
-                }
-
-                await conn.sendMessage(m.chat, doc, {
-                    quoted: m
-                })
-            } catch (e) {
-                await m.reply(eror)
-            }
-        }
-    }
-}
-handler.help = ["lagu123"]
-handler.tags = ["internet"]
-handler.command = /^(lagu123)$/i
-export default handler
-
-/* New Line */
-function replaceSymbolsAndSpaces(text) {
-    const replacedText = text.replace(/[^\w\s]/g, '').replace(/\s+/g, '-');
-    return replacedText;
-}
-
-async function searchLagu123(query) {
-    let proxyurl = "https://files.xianqiao.wang/"
-    const url = `https://${replaceSymbolsAndSpaces(query)}.downloadlagu123.biz/`;
-    const response = await fetch(proxyurl + url);
-    const html = await response.text();
-
-    const $ = cheerio.load(html);
-    const resultList = [];
-
-    $('.clearfix.search-content').each((index, element) => {
-        const item = {
-            position: $(element).find('[itemprop="position"]').attr('content'),
-            imageSrc: $(element).find('[itemprop="image"]').attr('src'),
-            title: $(element).find('[itemprop="name"]').text(),
-            url: $(element).find('[itemprop="url"]').attr('href'),
-            playUrl: "https://youtube.com/watch?v=" + $(element).find('[onclick^="playAudio"]').attr('onclick').match(/'([^']+)'/)[1],
-            audioUrl: "https://ytmp3.mobi/button-api/#" + $(element).find('[onclick^="playAudio"]').attr('onclick').match(/'([^']+)'/)[1] + "|mp3",
-            videoUrl: "https://ytmp3.mobi/button-api/#" + $(element).find('[onclick^="playAudio"]').attr('onclick').match(/'([^']+)'/)[1] + "|mp4|e74c3c|ffffff",
-            downloadUrl: $(element).find('a[title^="Download Lagu"]').attr('href'),
-        };
-
-        resultList.push(item);
-    });
-
-    return resultList;
-}
+                            title: yt
