@@ -1,26 +1,31 @@
 import fetch from 'node-fetch';
+import { mime } from 'mime-types';
 
 export async function before(m) {
-    const regex = /(https?:\/\/(?:www\.)?instagram\.[a-z\.]{2,6}\/[\w\-\.]+(\/[^\s]*)?)/g;
-    const matches = m.text.trim().match(regex);
-    const chat = global.db.data.chats[m.chat];
-    const spas = "                ";
+  const regex = /(https?:\/\/(?:www\.)?instagram\.[a-z\.]{2,6}\/[\w\-\.]+(\/[^\s]*)?)/g;
+  const matches = m.text.trim().match(regex);
+  const chat = global.db.data.chats[m.chat];
 
-    if (!matches || !matches[0] || chat.autodlInstagram !== true) return;
+  if (!matches || !matches[0] || chat.autodlInstagram !== true) return;
 
-    await m.reply(wait);
+  await m.reply(global.wait);
 
-    try {
-        const res = await fetch(`https://vihangayt.me/download/instagram?url=${matches[0]}`);
-        const igeh = await res.json();
-        const IgCap = `${spas}*[ INSTAGRAM ]*`;
+  try {
+    const res = await fetch(`https://vihangayt.me/download/instagram?url=${matches[0]}`);
+    const data = await res.json();
 
-        if (igeh.data && igeh.data.data.length > 0) {
-            for (const item of igeh.data.data) {
-                await conn.sendFile(m.chat, item.url || giflogo, "", IgCap, m);
-            }
-        }
-    } catch (e) {}
+    if (data.data && data.data.length > 0) {
+      for (const item of data.data) {
+        const mediaType = mime.lookup(item.url);
+        await m.reply(item.url, mediaType, m);
+      }
+    } else {
+      await m.reply('No media found.');
+    }
+  } catch (e) {
+    console.error(e);
+    await m.reply('Error downloading media.');
+  }
 }
 
 export const disabled = false;
