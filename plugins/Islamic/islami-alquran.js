@@ -8,10 +8,10 @@ const handler = async (m, {
     command
 }) => {
     try {
-        if (!(args[0] || args[1]))
-            throw `contoh:\n${usedPrefix + command} 1 2\n\nmaka hasilnya adalah surah Al-Fatihah ayat 2`;
+        if (!args[0] || !args[1])
+            throw `Contoh:\n${usedPrefix + command} 1 2\n\nMaka hasilnya adalah surah Al-Fatihah ayat 2`;
         if (isNaN(args[0]) || isNaN(args[1]))
-            throw `contoh:\n${usedPrefix + command} 1 2\n\nmaka hasilnya adalah surah Al-Fatihah ayat 2 `;
+            throw `Contoh:\n${usedPrefix + command} 1 2\n\nMaka hasilnya adalah surah Al-Fatihah ayat 2 `;
 
         const res = await alquran(args[0], args[1]);
 
@@ -21,13 +21,11 @@ ${res.latin}
 
 ${res.terjemahan}
 
-Tafsir:
-${res.tafsir}
+Tafsir:\n${res.tafsir}
 
-Keterangan:
-${res.keterangan}
+Keterangan:\n${res.keterangan}
 
-( ${res.surah} )
+(Surah ${res.surah})
 `.trim();
 
         m.reply(replyMsg);
@@ -36,16 +34,15 @@ ${res.keterangan}
             audio: {
                 url: res.audio
             },
-            seconds: fsizedoc,
             ptt: true,
             mimetype: "audio/mpeg",
-            fileName: "vn.mp3",
+            fileName: "quran.mp3",
             waveform: [100, 0, 100, 0, 100, 0, 100]
         }, {
             quoted: m
         });
     } catch (e) {
-        throw e;
+        m.reply(e);
     }
 };
 
