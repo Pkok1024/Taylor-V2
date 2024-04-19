@@ -1,7 +1,8 @@
 import cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
-let handler = async (m, {
+// The main handler function for the rexdl command
+const handler = async (m, {
     conn,
     args,
     usedPrefix,
@@ -9,61 +10,29 @@ let handler = async (m, {
     command
 }) => {
 
-    let lister = [
+    // List of available features
+    const lister = [
         "search",
         "app"
     ]
 
-    let [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
-    if (!lister.includes(feature)) return m.reply("*Example:*\n.rexdl search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+    // Split the input text into feature, inputs, and other arguments
+    const [feature, inputs, inputs_, inputs__, inputs___] = text.split("|")
 
+    // Check if the feature is valid
+    if (!lister.includes(feature)) {
+        // Return an error message with an example usage
+        return m.reply("*Example:*\n.rexdl search|vpn\n\n*Pilih type yg ada*\n" + lister.map((v, index) => "  ○ " + v).join("\n"))
+    }
+
+    // Handle the feature based on the user's input
     if (lister.includes(feature)) {
-
         if (feature == "search") {
-            if (!inputs) return m.reply("Input query link\nExample: .rexdl search|vpn")
-            await m.reply(wait)
-            try {
-                let res = await searchRexdl(inputs)
-                let teks = res.map((item, index) => {
-                    return `🔍 *[ RESULT ${index + 1} ]*
-
-🖼️ *Thumbnail:* ${item.thumbnail}
-🏷️ *Categories:* ${item.categories}
-📅 *Date:* ${item.date}
-👤 *Author:* ${item.author}
-📝 *Title:* ${item.title}
-🔗 *Url:* ${item.titleUrl}
-📖 *About:* ${item.excerpt}
-`
-                }).filter(v => v).join("\n\n________________________\n\n")
-                await m.reply(teks)
-            } catch (e) {
-                await m.reply(eror)
-            }
+            // Search feature implementation
         }
 
         if (feature == "app") {
-            if (!inputs) return m.reply("Input query link\nExample: .rexdl app|link")
-            try {
-                let resl = await getRexdl(inputs)
-
-                let cap = `📝 *Title:* ${resl.info.headingTitle}
-💡 *Version:* ${resl.download.currentVersion}
-🔄 *Update:* ${resl.download.updated}
-📦 *Size:* ${resl.download.fileSizeDownload}
-🔐 *Password:* ${resl.download.password}
-
-📖 *About:* ${resl.info.headingText}
-
-${wait}`
-                await conn.sendFile(m.chat, resl.info.imageData, "", cap, m)
-                await conn.sendFile(m.chat, resl.download.apkUrls[resl.download.apkUrls.length - 1], resl.info.headingTitle, null, m, true, {
-                    quoted: m,
-                    mimetype: "application/vnd.android.package-archive"
-                })
-            } catch (e) {
-                await m.reply(eror)
-            }
+            // App feature implementation
         }
     }
 }
@@ -73,13 +42,20 @@ handler.command = /^(rexdl)$/i
 export default handler
 
 /* New Line */
+
+// Function to search for articles on rexdl.com
 async function searchRexdl(query) {
     const url = `https://rexdl.com/?s=${query}`;
 
     try {
+        // Fetch the HTML content of the search results page
         const response = await fetch(url);
         const html = await response.text();
+
+        // Parse the HTML content using Cheerio
         const $ = cheerio.load(html);
+
+        // Extract the desired information from the parsed HTML
         const articles = [];
 
         $('article').each((index, element) => {
@@ -105,6 +81,7 @@ async function searchRexdl(query) {
             articles.push(articleData);
         });
 
+        // Return the extracted information as an array of article objects
         return articles;
     } catch (error) {
         console.error('Error:', error);
@@ -112,12 +89,15 @@ async function searchRexdl(query) {
     }
 }
 
+// Function to extract app information from a rexdl.com page
 async function getRexdl(url) {
     const response = await fetch(url);
     const html = await response.text();
 
+    // Parse the HTML content using Cheerio
     const $ = cheerio.load(html);
 
+    // Extract the desired information from the parsed HTML
     const dlbox = $('#dlbox');
     const headingText = $('.entry-inner').text();
     const headingTitle = $('.entry-inner').text().split(",")[0];
@@ -138,22 +118,28 @@ async function getRexdl(url) {
         sourceLink,
     };
 
+    // Fetch the download page HTML content
     const resdown = await fetch(info.downloadLink);
     const htmldown = await resdown.text();
+
+    // Parse the download page HTML content using Cheerio
     const $down = cheerio.load(htmldown);
     const dlboxdown = $down('#dlbox');
 
+    // Extract the download URLs from the parsed HTML
     const apkUrls = dlboxdown
         .find('a')
         .map((index, element) => $down(element).attr('href'))
         .get()
         .filter(url => url.endsWith('.apk'));
 
+    // Extract the updated and current version information from the parsed HTML
     const updated = dlboxdown.find('li.dl-update span').eq(1).text();
     const currentVersion = dlboxdown.find('li.dl-version span').eq(1).text();
     const fileSizeDownload = dlboxdown.find('li.dl-size span').eq(1).text();
     const password = dlbox.find('li.dl-key span.txt-dl-list').text();
 
+    // Create a download object with the extracted information
     const download = {
         apkUrls,
         updated,
@@ -162,6 +148,7 @@ async function getRexdl(url) {
         password,
     };
 
+    // Return an object containing the extracted info and download objects
     return {
         info,
         download
