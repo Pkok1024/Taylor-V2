@@ -1,11 +1,12 @@
 export async function before(m, {
     isAdmin,
-    isBotAdmin
+    isBotAdmin,
+    participants
 }) {
-    if (m.isBaileys || !(m.mtype === "stickerMessage") || !global.db.data.chats[m.chat]?.antiSticker) return;
+    if (m.isBaileys || m.mtype !== "stickerMessage" || !global.db.data.chats[m.chat].antiSticker) return;
 
     const user = global.db.data.users[m.sender];
-    user.warn += 1;
+    user.warn = (user.warn || 0) + 1;
     user.banned = true;
 
     m.reply('⚠️ *Stiker Terdeteksi!* ⚠️\nKamu telah mengirimkan stiker yang tidak diizinkan.');
@@ -19,7 +20,11 @@ export async function before(m, {
                 participant: [m.sender]
             }
         };
-        m.reply(isAdmin ? '❌ *Kamu tidak diizinkan mengirim stiker.*' : '❌ *Stiker terdeteksi dan dihapus.*');
-        await this.sendMessage(m.chat, deleteMessage);
+
+        const targetParticipant = participants.find(participant => participant.id === m.sender);
+        if (targetParticipant) {
+            m.reply(isAdmin ? '❌ *Kamu tidak diizinkan mengirim stiker.*' : '❌ *Stiker terdeteksi dan dihapus.*');
+            await this.sendMessage(m.chat, deleteMessage);
+        }
     }
 }
