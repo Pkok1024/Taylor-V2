@@ -2,19 +2,8 @@ const {
     Primbon
 } = await (await import('../../lib/scraped-primbon.js'))
 const primbon = new Primbon()
-let handler = async (m, {
-    conn,
-    args,
-    usedPrefix,
-    command
-}) => {
-    let text
-    if (args.length >= 1) {
-        text = args.slice(0).join(" ")
-    } else if (m.quoted && m.quoted.text) {
-        text = m.quoted.text
-    } else return m.reply("Masukkan pesan!")
-    await m.reply(wait)
+
+const ramalanJodohBali = async (text) => {
     try {
         const inputText = text.split("|");
 
@@ -34,18 +23,39 @@ Hasil Ramalan: ${jodohBali.message.result}
 Catatan: ${jodohBali.message.catatan}
 `;
 
-            await m.reply(caption);
+            return caption;
         } else {
             console.error("Mohon pastikan semua input teks diisi. Total 8 input diperlukan.");
-            await m.reply("Mohon pastikan semua input teks diisi. Total 8 input diperlukan.");
+            throw new Error("Mohon pastikan semua input teks diisi. Total 8 input diperlukan.");
         }
     } catch (error) {
         console.error("Error occurred during conversion:", error);
-        await m.reply("Terjadi kesalahan!");
+        throw new Error("Terjadi kesalahan!");
     }
-
 }
+
+const handler = async (m, {
+    conn,
+    args,
+    usedPrefix,
+    command
+}) => {
+    let text
+    if (args.length >= 1) {
+        text = args.slice(0).join(" ")
+    } else if (m.quoted && m.quoted.text) {
+        text = m.quoted.text
+    } else return m.reply("Masukkan pesan!")
+
+    await m.reply(wait)
+    try {
+        const caption = await ramalanJodohBali(text);
+        await m.reply(caption);
+    } catch (error) {
+        await m.reply(error.message);
+    }
+}
+
 handler.help = ["jodohbali"]
 handler.tags = ["primbon"]
-handler.command = /^jodohbali$/i
-export default handler
+handler.command
