@@ -4,7 +4,7 @@ import {
     sticker
 } from '../../lib/sticker.js';
 
-async function emojiGraph(url) {
+const emojiGraph = async (url) => {
     const response = await fetch(url);
     const html = await response.text();
     const $ = cheerio.load(html);
@@ -39,24 +39,23 @@ async function emojiGraph(url) {
     return emojiData;
 }
 
-async function searchEmoji(q) {
+const searchEmoji = async (q) => {
     try {
-        const response = await fetch('https://emojigraph.org/id/search/?q=' + q + '&searchLang=id');
+        const response = await fetch(`https://emojigraph.org/id/search/?q=${q}&searchLang=id`);
         const html = await response.text();
         const $ = cheerio.load(html);
 
-        const links = $('#search__first .s__first__ul a').map((index, element) => 'https://emojigraph.org' + $(element).attr('href')).get();
-
-        return links;
+        return $('#search__first .s__first__ul a').map((index, element) => 'https://emojigraph.org' + $(element).attr('href')).get();
     } catch (error) {
         console.error('Error:', error);
     }
 }
 
-async function emojiPedia(emoji) {
+const emojiPedia = async (emoji) => {
     const response = await fetch(`https://emojipedia.org/${encodeURI(emoji)}`);
     const html = await response.text();
     const $ = cheerio.load(html);
+
     return $('section.vendor-list > ul > li').map((_, v) => ({
         vendor: $('h2 a', v).text(),
         url: `https://emojipedia.org/${$('h2 a', v).attr('href').replace(/^\//, '')}`,
@@ -69,34 +68,34 @@ async function emojiPedia(emoji) {
     })).get();
 }
 
-let handler = async (m, {
+const handler = async (m, {
     args,
     usedPrefix,
     command
 }) => {
 
-    if (!args[0]) return m.reply('Silakan masukkan *emoji* atau perintah yang benar.');
+    if (!args[0]) return m.reply('Please enter an *emoji* or a valid command.');
 
     try {
         const url = await searchEmoji(args[0])
         const res = await emojiGraph(url[0])
         const emojiData = res[0].vendors
-        if (!emojiData.length) return m.reply('Emoji tidak ditemukan atau input tidak valid. Silakan coba lagi.');
+        if (!emojiData.length) return m.reply('Emoji not found or invalid input. Please try again.');
 
         if (!args[1]) {
             const vendorsList = emojiData.map((data, index) => `*${index + 1}.* ${data.name}`);
-            return m.reply(`Daftar vendor untuk *${args[0]}*:\n\n${vendorsList.join('\n')}\n\nContoh: *${usedPrefix + command}* [emoji] [vendor]`);
+            return m.reply(`Vendors list for *${args[0]}*:\n\n${vendorsList.join('\n')}\n\nExample: *${usedPrefix + command}* [emoji] [vendor]`);
         }
 
         const vendorIndex = parseInt(args[1]) - 1;
-        if (isNaN(vendorIndex) || vendorIndex < 0 || vendorIndex >= emojiData.length) return m.reply(`Indeks vendor tidak valid. Harap berikan nomor yang valid dari angka 1 sampai ${emojiData.length}.`);
+        if (isNaN(vendorIndex) || vendorIndex < 0 || vendorIndex >= emojiData.length) return m.reply(`Invalid vendor index. Please provide a valid number from 1 to ${emojiData.length}.`);
 
         const vendorData = emojiData[vendorIndex];
-        m.reply(`Informasi emoji untuk *${args[0]}* (${vendorData.name}):\n\nURL: ${vendorData.link}\nGambar: ${vendorData.image}`);
+        m.reply(`Emoji information for *${args[0]}* (${vendorData.name}):\n\nURL: ${vendorData.link}\nImage: ${vendorData.image}`);
         return m.reply(await sticker(false, vendorData.image, packname, m.name));
     } catch (error) {
         console.error('Error fetching or parsing data:', error);
-        return m.reply('Terjadi kesalahan saat mencari data emoji.');
+        return m.reply('Error while fetching emoji data.');
     }
 };
 
