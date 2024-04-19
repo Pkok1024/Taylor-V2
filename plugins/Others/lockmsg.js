@@ -1,17 +1,34 @@
+const {
+    getData,
+    setData
+} = require('../helpers/db');
+
 let handler = async (m, {
     text,
     command,
-    usedPrefix
+    usedPrefix,
+    connection
 }) => {
-    if (!text) throw `uhm.. teksnya mana?\n\nexample:\n${usedPrefix + command} tes`
-    let msgs = global.db.data.msgs
-    if (!(text in msgs)) return await conn.reply(m.chat, `'${text}' tidak terdaftar!`, m)
-    msgs[text].locked = !/^un/i.test(command)
-    m.reply('berhasil dikunci!')
-}
-handler.rowner = true
-handler.help = ['un', ''].map(v => v + 'lockmsg <teks>')
-handler.tags = ['database']
-handler.command = /^(un)?lock(vn|msg|video|audio|img|stic?ker|gif)$/i
+    if (!text) throw `Use example: ${usedPrefix + command} tes\n\nAvailable commands:\n${handler.help.map(v => v.replace(/<teks>/g, 'your text')).join('\n')}`;
 
-export default handler
+    let db = getData('msgs');
+    if (!db[text]) return await connection.reply(m.chat, `'${text}' is not found!`, m);
+
+    let lockStatus = db[text].locked;
+    let newLockStatus = !lockStatus;
+
+    if (/^un/.test(command)) newLockStatus = false;
+
+    db[text].locked = newLockStatus;
+    setData('msgs', db);
+
+    let statusText = newLockStatus ? 'locked' : 'unlocked';
+    await connection.reply(m.chat, `Successfully ${statusText}!`, m);
+}
+
+handler.rowner = true;
+handler.help = ['un', ''].map(v => v + 'lockmsg <teks>');
+handler.tags = ['database'];
+handler.command = /^(un)?lock(vn|msg|video|audio|img|stic?ker|gif)$/i;
+
+module.exports = handler;
